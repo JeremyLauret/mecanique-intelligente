@@ -1,4 +1,3 @@
-// Author:
 
 #include "pixel.h"
 #include "photo.h"
@@ -12,10 +11,13 @@ struct MySort{
 
 int main(int argc, char* argv[]) {
     Image<byte> I;
-    if(! load(I, argc>1? argv[1]: srcPath("salon.png"))) {
+    if(! load(I, argc>1? argv[1]: srcPath("structure.png"))) {
         std::cout << "Echec de lecture d'image" << std::endl;
         return 1;
     }
+
+    std::cout<<I.width()<<std::endl;
+    std::cout<<I.height()<<std::endl;
 
     //on cree la "photo" associee a l'image
     Photo P=Photo(I.height(),I.width());
@@ -32,45 +34,48 @@ int main(int argc, char* argv[]) {
     std::vector<int*> pointeurs_etq; // vecteur des pointeurs attribues a chaque valeur des etiquettes utilises
     for(int i=0;i<P.get_n();i++){
         for(int j=0;j<P.get_m();j++){
-            Pixel p=P.get(i,j); ////ca me permet de modifier et garder l'info pour le Pixell?
-            if(p.nb_etiquettes_vois==0){
-                //creer un nouveau pointeur pour la nouvelle etiquette
-                int* pointeur= new int(nb_etiquettes+1);
-                //update le pointeur du pixel
-                p.etiquette=pointeur;
-                //rajouter le pointeur au vecteur
-                pointeurs_etq.push_back(pointeur);
-                //rajouter etiquette voisine aux voisins
-                P.update_voisins(i,j,p.etiquette);
-                //incrementer le nombre d'etiqiettes uttilisees
-                nb_etiquettes+=1;
-                //rajouter l'etiquette au vecteur
-                Etiquette e=Etiquette(*(p.etiquette));
-                E.push_back(e);
-            }
-            if(p.nb_etiquettes_vois==1){ //alors etiquettes_vois ne contient que une seule valeur (peut etre plusieurs fois)
-                //update le pointeur du pixel: il prend la valeur de l'etiquette du pixel voisin
-                p.etiquette=p.etiquettes_vois[0];
-                //incrementer la taille de l'etiquette
-                for(int k=0;k<E.size();k++){
-                    if(E[k].numero==*(p.etiquette)){
-                        E[k].taille+=1;
-                    }
+            if(I(j,i)==0){
+                std::cout<<i<<std::endl;
+                Pixel p=P.get(i,j); ////ca me permet de modifier et garder l'info pour le Pixell?
+                if(p.nb_etiquettes_vois==0){
+                    //creer un nouveau pointeur pour la nouvelle etiquette
+                    int* pointeur= new int(nb_etiquettes+1);
+                    //update le pointeur du pixel
+                    p.etiquette=pointeur;
+                    //rajouter le pointeur au vecteur
+                    pointeurs_etq.push_back(pointeur);
+                    //rajouter etiquette voisine aux voisins
+                    P.update_voisins(i,j,p.etiquette);
+                    //incrementer le nombre d'etiqiettes uttilisees
+                    nb_etiquettes+=1;
+                    //rajouter l'etiquette au vecteur
+                    Etiquette e=Etiquette(*(p.etiquette));
+                    E.push_back(e);
                 }
-                //rajouter etiquette voisine aux voisins
-                P.update_voisins(i,j,p.etiquette);
-            }
-            if(p.nb_etiquettes_vois>1){
-                //update du pointeur du pixel: il prend la valeur de l'etiquette voisine de valeure minimale
-                p.etiquette=*(std::min_element(p.etiquettes_vois.begin(),p.etiquettes_vois.end(),MySort()));
-                //incrementer la taille de l'etiquette
-                for(int k=0;k<E.size();k++){
-                    if(E[k].numero==*(p.etiquette)){
-                        E[k].taille+=1;
+                if(p.nb_etiquettes_vois==1){ //alors etiquettes_vois ne contient que une seule valeur (peut etre plusieurs fois)
+                    //update le pointeur du pixel: il prend la valeur de l'etiquette du pixel voisin
+                    p.etiquette=p.etiquettes_vois[0];
+                    //incrementer la taille de l'etiquette
+                    for(int k=0;k<E.size();k++){
+                        if(E[k].numero==*(p.etiquette)){
+                            E[k].taille+=1;
+                        }
                     }
+                    //rajouter etiquette voisine aux voisins
+                    P.update_voisins(i,j,p.etiquette);
                 }
-                //rajouter etiquette voisine aux voisins
-                P.update_voisins(i,j,p.etiquette);
+                if(p.nb_etiquettes_vois>1){
+                    //update du pointeur du pixel: il prend la valeur de l'etiquette voisine de valeure minimale
+                    p.etiquette=*(std::min_element(p.etiquettes_vois.begin(),p.etiquettes_vois.end(),MySort()));
+                    //incrementer la taille de l'etiquette
+                    for(int k=0;k<E.size();k++){
+                        if(E[k].numero==*(p.etiquette)){
+                            E[k].taille+=1;
+                        }
+                    }
+                    //rajouter etiquette voisine aux voisins
+                    P.update_voisins(i,j,p.etiquette);
+                }
             }
         }
     }
@@ -103,3 +108,4 @@ int main(int argc, char* argv[]) {
 
    return 0;
 }
+
