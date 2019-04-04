@@ -4,10 +4,11 @@ list(APPEND CMAKE_MODULE_PATH "${p}") #For old Imagine++
 list(APPEND CMAKE_SYSTEM_FRAMEWORK_PATH /Library/Frameworks) #Mac, why not auto?
 find_package(Imagine REQUIRED)
 
-project(PDD)
+project(connected_sets)
 
-add_executable(pdd pixel.h pixel.cpp
-                                main.cpp photo.h photo.cpp)
-ImagineUseModules(pdd Images)
+add_executable(connected_sets
+               main.cpp
+               photo.cpp
+               pixel.cpp)
 
-
+ImagineUseModules(connected_sets Images)
