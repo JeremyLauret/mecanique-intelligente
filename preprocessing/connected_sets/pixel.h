@@ -1,34 +1,22 @@
 #pragma once
 
-#include <complex>
-#include <Imagine/Images.h>
-using namespace Imagine;
+#include <iostream>
 
-Image<byte> affichable(const Image<float>& F);
-void affiche(const Image<float>& F);
-
-class Etiquette{
-public:
-    int numero;
-    int taille;
-    Etiquette();
-    Etiquette(int n);
-};
+const int INITIAL_LABEL = -1;
+const int BLACK = 0;
+const int WHITE = 255;
 
 class Pixel{
 private:
-    int i;
-    int j;
+    int row;
+    int col;
+    int value;
 public:
-    int* etiquette;
-    int nb_etiquettes_vois;
-    std::vector<int*> etiquettes_vois;
-    Pixel(); //constructeur
-    Pixel(int i0,int j0);
-    ~Pixel(); //destructeur
-    int get_i() const;
-    int get_j() const;
-
+    int label;
+    Pixel(){}
+    Pixel(int row_,int col_, int value_);
+    int get_row() const;
+    int get_col() const;
+    bool is_black() const;
+    bool has_label() const;
 };
-
-
