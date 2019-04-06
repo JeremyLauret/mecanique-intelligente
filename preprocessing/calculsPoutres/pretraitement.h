@@ -5,17 +5,13 @@
 #include <iostream>
 #include <cmath>
 
+#include "hough.h"
+
 using namespace Imagine;
 using namespace std;
 
 typedef Image<byte> Img;
 
-const int grheight =128,
-          barheight =32,
-          nb_iter = 15 ;
-
-const int white = 255;
-const int black = 0;
 
 
 

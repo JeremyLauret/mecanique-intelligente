@@ -258,13 +258,9 @@ void dessineDroite(Img imgDroites, int rho, int theta, Img img) {
 // Attention, x pour la hauteur et y pour la largeur
 void hough(Img img){
     // CONSTANTES
-    int nb_theta = 180;
+
     int rho_max = static_cast<int>(sqrt(img.width()*img.width() + img.height() * img.height()));
     int nb_rho = 2*rho_max + 1;
-
-    int seuil = 60;
-    int ecart = 5;
-    int tolerance = 2;
 
     // Création de la matrice M(rho, theta)
     int M[nb_theta*nb_rho];
@@ -273,17 +269,8 @@ void hough(Img img){
     }
 
     // Calcul de la transformée de Hough
-    for (int x=0; x<img.height(); x++){
-        for (int y=0; y<img.width(); y++){
-            if (img(y,x) == black){
-                for (int theta=0; theta<nb_theta; theta++){
-                    float rho = x*cos(theta * M_PI / nb_theta) + y*sin(theta * M_PI / nb_theta);
-                    int rho_int = static_cast<int>(rho);
-                    M[(rho_int+rho_max)*nb_theta + theta] = M[(rho_int+rho_max)*nb_theta + theta] + 1;
-                }
-            }
-        }
-    }
+    calculTransformeeSurImage(img, M, rho_max);
+
 
     // Nouvelle image où on affichera uniquement les droites détectées
     Img imgIsolated = img.clone();
@@ -292,80 +279,33 @@ void hough(Img img){
     Img imgDroitesLarges = imgDroites.clone();
 
     // On recherche les maxima de M et on les affiche, si ils dépassent un certain seuil
-    for (int rho=-rho_max; rho<rho_max+1; rho++){
-        for (int theta=0; theta<nb_theta; theta++){
-            if (M[(rho+rho_max)*nb_theta + theta] > seuil){
-                cout << "rho = " << rho << ", theta = " << theta << ", repet = " << M[(rho+rho_max)*nb_theta + theta] << endl;
+    rechercheMaxRhoTheta(img, M, rho_max, imgDroitesLarges, imgDroites);
 
-                // On supprime les droites avec des rho ou theta très proches, i.e. plus proche que "ecart"
-                for (int dtheta=-ecart; dtheta<ecart+1; dtheta++){
-                    for (int drho=-ecart; drho<ecart+1; drho++) {
-                        if (dtheta != 0 && drho != 0) {
-                            M[(rho+rho_max + drho)*nb_theta + theta + dtheta] = 0;
-                        }
-                    }
-                }
 
-                dessineDroite(imgDroites, rho, theta, img);
 
-                for (int drho = -tolerance; drho<tolerance+1; drho++) {
-                    dessineDroite(imgDroitesLarges, rho+drho, theta, img);
-                }
-            }
-        }
-    }
-
+    // FENETRE 2
     Window W2 = openWindow(img.width(), img.height(), "Droites détectées par transformée de Hough");
     setActiveWindow(W2);
 
     // On rajoute une condition pour avoir un segment détecté : parmi les voisins d'un pixel détecté il doit y en avoir au moins un qui est noir
-    for (int x=2; x<img.height()-2; x++){
-        for (int y=2; y<img.width()-2; y++){
-            if (imgDroites(y,x) == black){
-                int somme_byte = 0;
-                for (int eps_x = -2; eps_x<3; eps_x++){
-                    for (int eps_y = -2; eps_y<3; eps_y++){
-                        if(eps_x!=0 || eps_y!=0){
-                            somme_byte += imgDroites(y+eps_y, x+eps_x);
-                        }
-                    }
-                }
-
-                if (somme_byte > 3*black+21*white){
-                    imgDroites(y, x) = white;
-                }
-            }
-        }
-    }
-
-    imgDroitesLarges = imgDroites.clone();
-    for (int rho=-rho_max; rho<rho_max+1; rho++){
-        for (int theta=0; theta<nb_theta; theta++){
-            if (M[(rho+rho_max)*nb_theta + theta] > seuil){
-                for (int drho = -tolerance; drho<tolerance+1; drho++) {
-                    dessineDroite(imgDroitesLarges, rho+drho, theta, img);
-                }
-            }
-        }
-    }
-
+    nettoyageDroites(img, imgDroites);
     display(imgDroites);
 
+
+
+    // FENETRE 3
     Window W3 = openWindow(img.width(), img.height(), "Droites détectées par transformée de Hough, plus larges");
     setActiveWindow(W3);
 
+    imgDroitesLarges = imgDroites.clone();
+    dessineDroitesLarges(img, imgDroitesLarges, M, rho_max);
     display(imgDroitesLarges);
 
 
-    for (int x=0; x<img.height(); x++){
-        for (int y=0; y<img.width(); y++){
-            if (img(y,x) == black && imgDroitesLarges(y,x) == black){
-                img(y,x) = white;
-            }
-        }
-    }
-    Window W5 = openWindow(img.width(), img.height(), "Schéma décomposé, en ayant retiré les poutres et possiblement les flèches");
-    setActiveWindow(W5);
 
+    // FENETRE 4
+    Window W4 = openWindow(img.width(), img.height(), "Schéma décomposé, en ayant retiré les poutres et possiblement les flèches");
+    setActiveWindow(W4);
+    effaceDroitesLargesCalculees(img, imgDroitesLarges);
     display(img);
 }

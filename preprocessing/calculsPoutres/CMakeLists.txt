@@ -6,5 +6,6 @@ find_package(Imagine REQUIRED)
 
 project(calculsPoutres)
 add_executable(calculsPoutres traitement.cpp
-                pretraitement.h pretraitement.cpp)
+                pretraitement.h pretraitement.cpp
+                hough.h hough.cpp)
 ImagineUseModules(calculsPoutres Graphics)
