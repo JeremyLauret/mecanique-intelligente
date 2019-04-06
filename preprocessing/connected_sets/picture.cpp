@@ -44,55 +44,21 @@ bool Picture::has_label(int row, int col) const {
     return tab[row + height * col].has_label();
 }
 
-void Picture::update_neighbours(int row, int col) {
-    assert (row >= 0 && row < height && col >= 0 && col < width);
+void Picture::update_neighbours(int row, int col, int range) {
+    assert (row >= 0 && row < height && col >= 0 && col < width && range > 0);
     int center_label = get_label(row, col); // Label to be propagated.
-    if (row > 0) {
-        if (is_black(row - 1, col) && !has_label(row - 1, col)) { // Up.
-            set_label(row - 1, col, center_label);
-            update_neighbours(row - 1, col);
-        }
-        if (col > 0) {
-            if (is_black(row - 1, col - 1) && !has_label(row - 1, col - 1)) { // Up-left.
-                set_label(row - 1, col - 1, center_label);
-                update_neighbours(row - 1, col - 1);
+    for (int delta_row = -range ; delta_row < range + 1 ; delta_row++) {     // For each neighbour
+        for (int delta_col = -range ; delta_col < range + 1 ; delta_col++) { // pixel.
+            if (row + delta_row >= 0 &&
+                row + delta_row < height &&
+                col + delta_col >= 0 &&
+                col + delta_col < width) { // Pixel is in the window.
+                if (is_black(row + delta_row, col + delta_col) &&   // Pixel is black.
+                    !has_label(row + delta_row, col + delta_col)) { // Pixel has no label.
+                    set_label(row + delta_row, col + delta_col, center_label);
+                    update_neighbours(row + delta_row, col + delta_col, range);
+                }
             }
-        }
-        if (col < width - 1) {
-            if (is_black(row - 1, col + 1) && !has_label(row - 1, col + 1)) { // Up-right.
-                set_label(row - 1, col + 1, center_label);
-                update_neighbours(row - 1, col + 1);
-            }
-        }
-    }
-    if (row < height - 1) {
-        if (is_black(row + 1, col) && !has_label(row + 1, col)) { // Down.
-            set_label(row + 1, col, center_label);
-            update_neighbours(row + 1, col);
-        }
-        if (col > 0) {
-            if (is_black(row + 1, col - 1) && !has_label(row + 1, col - 1)) { // Down-left.
-                set_label(row + 1, col - 1, center_label);
-                update_neighbours(row + 1, col - 1);
-            }
-        }
-        if (col < width - 1) {
-            if (is_black(row + 1, col + 1) && !has_label(row + 1, col + 1)) { // Down-right.
-                set_label(row + 1, col + 1, center_label);
-                update_neighbours(row + 1, col + 1);
-            }
-        }
-    }
-    if (col > 0) {
-        if (is_black(row, col - 1) && !has_label(row, col - 1)) { // Left.
-            set_label(row, col - 1, center_label);
-            update_neighbours(row, col - 1);
-        }
-    }
-    if (col < width - 1) {
-        if (is_black(row, col + 1) && !has_label(row, col + 1)) { // Right.
-            set_label(row, col + 1, center_label);
-            update_neighbours(row, col + 1);
         }
     }
 }

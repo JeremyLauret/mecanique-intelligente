@@ -20,5 +20,6 @@ public:
     int get_label(int row, int col) const;
     void set_label(int row, int col, int label_);
     bool has_label(int row, int col) const;
-    void update_neighbours(int row, int col); // Propagate label to black neighbours.
+    // Propagate label to black neighbours in the given range.
+    void update_neighbours(int row, int col, int range=1);
 };

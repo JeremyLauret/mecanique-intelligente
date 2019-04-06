@@ -82,8 +82,10 @@ byte* to_color_image(const Picture& picture, const std::vector<int>& labels) {
 
 int main() {
     // ---- Load input ----
-    std::string input_file_name = "hello_world";
+    int range = 1; // Size of the neighbourhood of one pixel.
+    std::string input_file_name = "structure";
     std::string input_extension = ".png";
+    std::string output_name = "./output/" + input_file_name + "_" + std::to_string(range) + ".jpg";
     std::string input_image_path = stringSrcPath(input_file_name + input_extension);
     byte* input_image;
     int input_width, input_height;
@@ -98,13 +100,13 @@ int main() {
     byte* binary_image = to_binary(input_image, input_height, input_width);
 
     // ---- Display binary (uncomment if wanted) ----
-    /*std::cout<<"Image width : "<<input_width<<std::endl;
+    std::cout<<"Image width : "<<input_width<<std::endl;
     std::cout<<"Image height : "<<input_height<<std::endl;
     Imagine::Window window = Imagine::openWindow(input_width, input_height);
     Imagine::setActiveWindow(window);
     std::cout<<"Displaying binary image..."<<std::endl;
     Imagine::putGreyImage(Imagine::IntPoint2(0, 0), binary_image, input_width, input_height);
-    Imagine::click();*/
+    Imagine::click();
 
     // ---- Create initial picture and labels vector ----
     Picture picture(binary_image, input_width, input_height);
@@ -115,8 +117,8 @@ int main() {
         for (int col = 0 ; col < picture.get_width() ; col++) {
             if (picture.is_black(row, col) && !picture.has_label(row, col)) {
                 picture.set_label(row, col, labels.size());
-                picture.update_neighbours(row, col);
                 labels.push_back(labels.size());
+                picture.update_neighbours(row, col, range);
             }
         }
     }
@@ -126,13 +128,12 @@ int main() {
     byte* color_image = to_color_image(picture, labels);
 
     // ---- Display colored image (uncomment if wanted) ----
-    /*std::cout<<"Number of labels : "<<labels.size()<<std::endl;
+    std::cout<<"Number of labels : "<<labels.size()<<std::endl;
     std::cout<<"Displaying colored image..."<<std::endl;
     Imagine::putColorImage(Imagine::IntPoint2(0, 0), color_image, input_width, input_height);
-    Imagine::click();*/
+    Imagine::click();
 
     // ---- Save colored image ----
-    std::string output_name = "./output/" + input_file_name + ".jpg";
     Imagine::saveColorImage(stringSrcPath(output_name), color_image, input_width, input_height);
 
     // ---- Cleanup ----
