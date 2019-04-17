@@ -29,6 +29,11 @@ bool Picture::is_black(int row,  int col) const {
     return tab[row + height * col].is_black();
 }
 
+void Picture::set_white(int row, int col) {
+    assert (row >= 0 && row < height && col >= 0 && col < width);
+    return tab[row + height * col].set_white();
+}
+
 int Picture::get_label(int row, int col) const {
     assert (row >= 0 && row < height && col >= 0 && col < width);
     return tab[row + height * col].label;

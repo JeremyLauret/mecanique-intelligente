@@ -17,6 +17,7 @@ public:
     int get_height() const;
     int get_width() const;
     bool is_black(int row, int col) const;
+    void set_white(int row, int col);
     int get_label(int row, int col) const;
     void set_label(int row, int col, int label_);
     bool has_label(int row, int col) const;

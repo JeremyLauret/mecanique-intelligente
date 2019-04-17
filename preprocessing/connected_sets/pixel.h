@@ -18,5 +18,6 @@ public:
     int get_row() const;
     int get_col() const;
     bool is_black() const;
+    void set_white();
     bool has_label() const;
 };
