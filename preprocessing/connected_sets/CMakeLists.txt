@@ -9,6 +9,7 @@ project(connected_sets)
 add_executable(connected_sets
                main.cpp
                picture.cpp
-               pixel.cpp)
+               pixel.cpp
+               connected_set.cpp)
 
 ImagineUseModules(connected_sets Images)

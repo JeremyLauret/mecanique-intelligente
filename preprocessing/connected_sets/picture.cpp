@@ -6,8 +6,8 @@ Picture::Picture(byte* image, int height_,int width_) {
     tab = new Pixel[height * width];
     for (int row = 0 ; row < height ; row++) {
         for (int col = 0 ; col < width ; col++) {
-            Pixel pixel(row, col, (int)image[row + height * col]);
-            tab[row + height * col] = pixel;
+            Pixel pixel(row, col, (int)image[col + width * row]);
+            tab[col + width * row] = pixel;
         }
     }
 }
@@ -26,27 +26,27 @@ int Picture::get_width() const {
 
 bool Picture::is_black(int row,  int col) const {
     assert (row >= 0 && row < height && col >= 0 && col < width);
-    return tab[row + height * col].is_black();
+    return tab[col + width * row].is_black();
 }
 
 void Picture::set_white(int row, int col) {
     assert (row >= 0 && row < height && col >= 0 && col < width);
-    return tab[row + height * col].set_white();
+    return tab[col + width * row].set_white();
 }
 
 int Picture::get_label(int row, int col) const {
     assert (row >= 0 && row < height && col >= 0 && col < width);
-    return tab[row + height * col].label;
+    return tab[col + width * row].label;
 }
 
 void Picture::set_label(int row, int col, int label_) {
     assert (row >= 0 && row < height && col >= 0 && col < width);
-    tab[row + height * col].label = label_;
+    tab[col + width * row].label = label_;
 }
 
 bool Picture::has_label(int row, int col) const {
     assert (row >= 0 && row < height && col >= 0 && col < width);
-    return tab[row + height * col].has_label();
+    return tab[col + width * row].has_label();
 }
 
 void Picture::update_neighbours(int row, int col, int range) {
