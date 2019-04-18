@@ -18,7 +18,7 @@ int main() {
     // Img est un type representant une image et img est le nom de la variable
     Img img_or, img,  fond_blanc ;
 
-    if (!load(img_or,srcPath("schema_crop.jpg"))) // Stop si l'image n'est pas chargee. ATTENTION : seules les images JPG sont prises en charge pour le moment.
+    if (!load(img_or,srcPath("schema_isolated_set.jpg"))) // Stop si l'image n'est pas chargee. ATTENTION : seules les images JPG sont prises en charge pour le moment.
         return 0;
 
     img = img_or.clone();

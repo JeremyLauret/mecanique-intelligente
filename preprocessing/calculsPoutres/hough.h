@@ -43,6 +43,19 @@ void calculTransformeeSurImage(const Img& img, int M[], const int& rho_max);
 
 void rechercheMaxRhoTheta(const Img& img, int M[], const int& rho_max, Img imgDroitesLarges, Img imgDroites);
 
+void debutFinDroite(const Img& img, const int& rho, const int& theta, int x_debut, int y_debut, int x_fin, int y_fin, int longueurPoutreMax, const int &seuil);
+
+/**
+ * @brief retireSegment
+ * @param img
+ * @param x_deb
+ * @param x_fin
+ * @param y_deb
+ * @param y_fin
+ */
+void retireSegment(Img img, const int& x_deb, const int& x_fin, const int& y_deb, const int& y_fin);
+
+
 /**
  * @brief nettoyageDroites : supprime les artefacts présents dans l'image
  * @param img

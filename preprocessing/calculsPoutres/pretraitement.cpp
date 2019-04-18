@@ -283,12 +283,14 @@ void hough(Img img){
 
 
 
+
     // FENETRE 2
     Window W2 = openWindow(img.width(), img.height(), "Droites détectées par transformée de Hough");
     setActiveWindow(W2);
 
     // On rajoute une condition pour avoir un segment détecté : parmi les voisins d'un pixel détecté il doit y en avoir au moins un qui est noir
     nettoyageDroites(img, imgDroites);
+    dessineDroite(imgDroites, 100, 0, img);
     display(imgDroites);
 
 
