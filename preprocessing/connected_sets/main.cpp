@@ -226,14 +226,39 @@ std::vector<int> get_labels_ordered_by_window(std::vector<ConnectedSet> connecte
 
 /*
  * Return a black and white image containing the connected set with given label.
+ *
+ * If height and width are sufficiently large, the returned image will be set with these dimensions.
  */
 byte* to_black_and_white_image(
     const Picture& picture,
     std::vector<ConnectedSet> connected_sets,
-    int label
+    int label,
+    int height = -1,
+    int width = -1
 ) {
     ConnectedSet connected_set = connected_sets[label];
-    // ---- Create RGB arrays depending on the pixel label ----
+    // If height and width are sufficiently large.
+    if (height >= connected_set.get_height() + connected_set.get_upper_row() &&
+        width > connected_set.get_width() + connected_set.get_left_col()) {
+        byte* image = new byte[height * width];
+        for (int row = 0 ; row < height ; row++) {
+            for (int col = 0 ; col < width ; col++) {
+                image[col + width * row] = (byte)WHITE;
+            }
+        }
+        for (int row = connected_set.get_upper_row() ;
+             row < connected_set.get_upper_row() + connected_set.get_height() ;
+             row++) {
+            for (int col = connected_set.get_left_col() ;
+                 col < connected_set.get_left_col() + connected_set.get_width() ;
+                 col++) {
+                if (picture.get_label(row, col) == label) {
+                    image[col + width * row] = (byte)BLACK;
+                }
+            }
+        }
+        return image;
+    }
     byte* image = new byte[connected_set.get_size()];
     for (int row = 0 ; row < connected_set.get_height() ; row++) {
         for (int col = 0 ; col < connected_set.get_width() ; col++) {
@@ -253,6 +278,7 @@ byte* to_black_and_white_image(
 
 int main() {
     // ---- Load input ----
+    bool save_largest_with_input_size = false;
     int range = 2; // Size of the neighbourhood of one pixel.
     int min_pixel_nb = 20; // Minimum number of pixels in a connected set.
     std::string input_file_name = "structure";
@@ -317,7 +343,27 @@ int main() {
 
     // ---- Create connected sets images in size order ----
     std::vector<byte*> connected_sets_images;
-    for (int label = 0 ; label < labels_by_window_order.size() ; label++) {
+    // Largest window.
+    if (save_largest_with_input_size) {
+        byte* connected_set_image = to_black_and_white_image(
+            picture,
+            connected_sets,
+            labels_by_window_order[0],
+            input_height,
+            input_width
+        );
+        connected_sets_images.push_back(connected_set_image);
+    }
+    else {
+        byte* connected_set_image = to_black_and_white_image(
+            picture,
+            connected_sets,
+            labels_by_window_order[0]
+        );
+        connected_sets_images.push_back(connected_set_image);
+    }
+    // Other windows.
+    for (int label = 1 ; label < labels_by_window_order.size() ; label++) {
         byte* connected_set_image = to_black_and_white_image(
             picture,
             connected_sets,
@@ -345,8 +391,15 @@ int main() {
     }*/
 
     // ---- Save connected sets images ----
-    for (int label = 0 ; label < connected_sets_images.size() ; label++) {
-        std::string set_name = output_name + "_(" + std::to_string(label) + ")" + output_extension;
+    std::string set_name = output_name + "_(" + std::to_string(0) + ")" + output_extension;
+    Imagine::saveGreyImage(
+        stringSrcPath(set_name),
+        connected_sets_images[0],
+        save_largest_with_input_size ? input_width : connected_sets[labels_by_window_order[0]].get_width(),
+        save_largest_with_input_size ? input_height : connected_sets[labels_by_window_order[0]].get_height()
+    );
+    for (int label = 1 ; label < connected_sets_images.size() ; label++) {
+        set_name = output_name + "_(" + std::to_string(label) + ")" + output_extension;
         Imagine::saveGreyImage(
             stringSrcPath(set_name),
             connected_sets_images[label],
@@ -356,11 +409,11 @@ int main() {
     }
 
     // ---- Create colored image from the connected sets ----
-    std::srand((unsigned int)std::time(0)); // Initialize random seed.
-    byte* color_image = to_color_image(picture, nb_labels);
+    /*std::srand((unsigned int)std::time(0)); // Initialize random seed.
+    byte* color_image = to_color_image(picture, nb_labels);*/
 
     // ---- Display colored image (uncomment if wanted) ----
-    std::cout<<"Number of labels : "<<nb_labels<<std::endl;
+    //std::cout<<"Number of labels : "<<nb_labels<<std::endl;
     /*std::cout<<"Displaying colored image..."<<std::endl;
     window = Imagine::openWindow(input_width, input_height);
     Imagine::setActiveWindow(window);
@@ -368,13 +421,13 @@ int main() {
     Imagine::click();*/
 
     // ---- Save colored image ----
-    std::string color_name = output_name + output_extension;
-    Imagine::saveColorImage(stringSrcPath(color_name), color_image, input_width, input_height);
+    /*std::string color_name = output_name + output_extension;
+    Imagine::saveColorImage(stringSrcPath(color_name), color_image, input_width, input_height);*/
 
     // ---- Cleanup ----
     delete[] input_image;
     delete[] binary_image;
-    delete[] color_image;
+    //delete[] color_image;
 
     return 0;
 }
