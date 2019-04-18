@@ -32,7 +32,7 @@ void calculTransformeeSurImage(const Img& img, int M[], const int& rho_max) {
  * @param imgDroitesLarges
  * @param imgDroites
  */
-void rechercheMaxRhoTheta(const Img& img, int M[], const int& rho_max, Img imgDroitesLarges, Img imgDroites) {
+void rechercheMaxRhoTheta(Img img, int M[], const int& rho_max, Img imgDroitesLarges, Img imgDroites) {
     // On recherche les maxima de M et on les affiche, si ils dépassent un certain seuil
     for (int rho=-rho_max; rho<rho_max+1; rho++){
         for (int theta=0; theta<nb_theta; theta++){
@@ -50,7 +50,7 @@ void rechercheMaxRhoTheta(const Img& img, int M[], const int& rho_max, Img imgDr
                 for (int dtheta=-ecart_hough; dtheta<ecart_hough+1; dtheta++){
                     for (int drho=-ecart_hough; drho<ecart_hough+1; drho++) {
                         if (dtheta != 0 && drho != 0) {
-                            M[(rho+rho_max + drho)*nb_theta + theta + dtheta] = 0;
+                            0;//M[(rho+rho_max + drho)*nb_theta + theta + dtheta] = 0;
                         }
                     }
                 }
@@ -151,26 +151,26 @@ void debutFinDroite(const Img& img, const int& rho, const int& theta, int x_debu
             for (int x=0; x<img.height(); x++) {
                 float numerateur0 = rho - x*cos(theta * M_PI/nb_theta);
                 float numerateur1 = rho +1 - x*cos(theta * M_PI/nb_theta);
-                float numerateur2 = rho +2 - x*cos(theta * M_PI/nb_theta);
+                //float numerateur2 = rho +2 - x*cos(theta * M_PI/nb_theta);
                 float numerateur3 = rho -1 - x*cos(theta * M_PI/nb_theta);
-                float numerateur4 = rho -2 - x*cos(theta * M_PI/nb_theta);
+                //float numerateur4 = rho -2 - x*cos(theta * M_PI/nb_theta);
                 float float_y0 = numerateur0 / sin(theta * M_PI/nb_theta);
                 int y0 = static_cast<int>(float_y0);
                 float float_y1 = numerateur1 / sin(theta * M_PI/nb_theta);
                 int y1 = static_cast<int>(float_y1);
-                float float_y2 = numerateur2 / sin(theta * M_PI/nb_theta);
-                int y2 = static_cast<int>(float_y2);
+                //float float_y2 = numerateur2 / sin(theta * M_PI/nb_theta);
+                //int y2 = static_cast<int>(float_y2);
                 float float_y3 = numerateur3 / sin(theta * M_PI/nb_theta);
                 int y3 = static_cast<int>(float_y3);
-                float float_y4 = numerateur4 / sin(theta * M_PI/nb_theta);
-                int y4 = static_cast<int>(float_y4);
+                //float float_y4 = numerateur4 / sin(theta * M_PI/nb_theta);
+                //int y4 = static_cast<int>(float_y4);
 
                 // On touche un pixel noir
                 if ((y0>=0 && y0<img.width() && img(y0,x)==black) ||
                     (y1>=0 && y1<img.width() && img(y1,x)==black) ||
-                    (y2>=0 && y2<img.width() && img(y2,x)==black) ||
-                    (y3>=0 && y3<img.width() && img(y3,x)==black) ||
-                    (y4>=0 && y4<img.width() && img(y4,x)==black)) {
+                    //(y2>=0 && y2<img.width() && img(y2,x)==black) ||
+                    (y3>=0 && y3<img.width() && img(y3,x)==black)) {
+                    //(y4>=0 && y4<img.width() && img(y4,x)==black)) {
 
                     // Initialisation : on arrive sur une potentielle poutre donc on stocke les coordonnées du début de cette poutre
                     if (longueurActuelle == 0){
@@ -203,25 +203,25 @@ void debutFinDroite(const Img& img, const int& rho, const int& theta, int x_debu
                 float numerateur0 = rho - y*sin(theta * M_PI/nb_theta);
                 float float_x0 = numerateur0 / cos(theta * M_PI/nb_theta);
                 int x0 = static_cast<int>(float_x0);
-                float numerateur1 = rho - y*sin(theta * M_PI/nb_theta);
+                float numerateur1 = rho+1 - y*sin(theta * M_PI/nb_theta);
                 float float_x1 = numerateur1 / cos(theta * M_PI/nb_theta);
                 int x1 = static_cast<int>(float_x1);
-                float numerateur2 = rho - y*sin(theta * M_PI/nb_theta);
-                float float_x2 = numerateur2 / cos(theta * M_PI/nb_theta);
-                int x2 = static_cast<int>(float_x2);
-                float numerateur3 = rho - y*sin(theta * M_PI/nb_theta);
+                //float numerateur2 = rho+2 - y*sin(theta * M_PI/nb_theta);
+                //float float_x2 = numerateur2 / cos(theta * M_PI/nb_theta);
+                //int x2 = static_cast<int>(float_x2);
+                float numerateur3 = rho-1 - y*sin(theta * M_PI/nb_theta);
                 float float_x3 = numerateur3 / cos(theta * M_PI/nb_theta);
                 int x3 = static_cast<int>(float_x3);
-                float numerateur4 = rho - y*sin(theta * M_PI/nb_theta);
-                float float_x4 = numerateur4 / cos(theta * M_PI/nb_theta);
-                int x4 = static_cast<int>(float_x4);
+                //float numerateur4 = rho-2 - y*sin(theta * M_PI/nb_theta);
+                //float float_x4 = numerateur4 / cos(theta * M_PI/nb_theta);
+                //int x4 = static_cast<int>(float_x4);
 
                 // On touche un pixel noir
                 if ((x0>=0 && x0<img.height()  && img(y,x0)==black) ||
                     (x1>=0 && x1<img.height()  && img(y,x1)==black) ||
-                    (x2>=0 && x2<img.height()  && img(y,x2)==black) ||
-                    (x3>=0 && x3<img.height()  && img(y,x3)==black) ||
-                    (x4>=0 && x4<img.height()  && img(y,x4)==black)) {
+                    //(x2>=0 && x2<img.height()  && img(y,x2)==black) ||
+                    (x3>=0 && x3<img.height()  && img(y,x3)==black)) {
+                    //(x4>=0 && x4<img.height()  && img(y,x4)==black)) {
 
                     // Initialisation : on arrive sur une potentielle poutre donc on stocke les coordonnées du début de cette poutre
                     if (longueurActuelle == 0){

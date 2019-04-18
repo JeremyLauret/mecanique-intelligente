@@ -25,7 +25,7 @@ const int nb_theta = 180;
 
 const int seuil_hough = 60;
 const int ecart_hough = 5;
-const int tolerance_hough = 2;
+const int tolerance_hough = 1;
 
 
 
@@ -41,7 +41,7 @@ const int tolerance_hough = 2;
 void calculTransformeeSurImage(const Img& img, int M[], const int& rho_max);
 
 
-void rechercheMaxRhoTheta(const Img& img, int M[], const int& rho_max, Img imgDroitesLarges, Img imgDroites);
+void rechercheMaxRhoTheta(Img img, int M[], const int& rho_max, Img imgDroitesLarges, Img imgDroites);
 
 void debutFinDroite(const Img& img, const int& rho, const int& theta, int x_debut, int y_debut, int x_fin, int y_fin, int longueurPoutreMax, const int &seuil);
 
