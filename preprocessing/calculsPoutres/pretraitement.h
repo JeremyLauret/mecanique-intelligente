@@ -65,4 +65,4 @@ void retireDroites(Img img);
 void dessineDroite(Img imgDroites, int rho, int theta, Img img);
 
 // Transformée de Hough
-void hough(Img img);
+std::vector<Img> hough(Img img);

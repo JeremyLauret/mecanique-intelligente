@@ -256,7 +256,7 @@ void dessineDroite(Img imgDroites, int rho, int theta, Img img) {
 
 // Transformée de Hough
 // Attention, x pour la hauteur et y pour la largeur
-void hough(Img img){
+std::vector<Img> hough(Img img){
     // CONSTANTES
 
     int rho_max = static_cast<int>(sqrt(img.width()*img.width() + img.height() * img.height()));
@@ -310,4 +310,12 @@ void hough(Img img){
     setActiveWindow(W4);
     effaceDroitesLargesCalculees(img, imgDroitesLarges);
     display(img);
+
+
+    // Output de la fonction
+    std::vector<Img> outputImages;
+    outputImages.push_back(img);
+    outputImages.push_back(imgDroitesLarges);
+
+    return outputImages;
 }
