@@ -5,6 +5,20 @@
 #include <vector>
 #include <algorithm>
 
+#include <dirent.h> // Provide directory manipulation.
+#include <cstdio>   // Provide perror().
+
+
+bool PROCESS_RAW_INPUT = false;
+int RANGE = 2;          // Range of pixels considered to be in the neighborhood of another pixel.
+int MIN_PIXELS_NB = 10; // Minimum number of pixels in a connected set.
+std::string RAW_INPUT_PATH = "../raw_input/";
+std::string INPUT_PATH = "../input/";
+std::string LARGEST_SETS_PATH = "../largest_sets/";
+std::string OUTPUT_PATH = "../output/";
+std::string OUTPUT_EXTENSION = ".jpg";
+
+
 /*
  * Construct a binary image from the input.
  *
@@ -33,6 +47,7 @@ byte* to_binary(byte* image, int height, int width) {
     }
     return binary_image;
 }
+
 
 /*
  * Return a colored image from the labeled picture.
@@ -81,6 +96,7 @@ byte* to_color_image(const Picture& picture, int nb_labels) {
     delete[] blue;
     return image;
 }
+
 
 /*
  * Return a vector containing the number of pixels of each connected set.
@@ -170,6 +186,7 @@ void remove_smaller_sets(
     nb_labels = pixel_counts.size();
 }
 
+
 /*
  * Set each connected set upper-left and bottom-right corners coordinates.
  */
@@ -200,6 +217,7 @@ void set_connected_sets_corners(
     }
 }
 
+
 /*
  * Return a vector of labels ordered by smallest containing window.
  */
@@ -223,6 +241,7 @@ std::vector<int> get_labels_ordered_by_window(std::vector<ConnectedSet> connecte
     }
     return labels;
 }
+
 
 /*
  * Return a black and white image containing the connected set with given label.
@@ -276,16 +295,32 @@ byte* to_black_and_white_image(
     return image;
 }
 
-int main() {
+
+/*
+ * Core function of the program. Process a file belonging to the INPUT_PATH firectory and save its
+ * connected sets in the OUTPUT_PATH directory.
+ *
+ * If isolate_largest_set is true, the largest connected set will be saved in LARGEST_SETS_PATH
+ * with same size as the original image.
+ *
+ * The parameters range and min_pixesl_nb alter the behavior of the separation algorithm. Range is
+ * the size of each pixel neighborhood, and min_pixel_nb is the minimal number of pixels in each
+ * connected set.
+ */
+void compute_and_save_connected_sets(
+    std::string input_full_name,
+    bool isolate_largest_set,
+    int range=1,
+    int min_pixels_nb=0
+) {
     // ---- Load input ----
-    bool save_largest_with_input_size = false;
-    int range = 2; // Size of the neighbourhood of one pixel.
-    int min_pixel_nb = 20; // Minimum number of pixels in a connected set.
-    std::string input_file_name = "structure";
-    std::string input_extension = ".png";
-    std::string output_name = "./output/" + input_file_name + "_" + std::to_string(range);
-    std::string output_extension = ".jpg";
-    std::string input_image_path = stringSrcPath(input_file_name + input_extension);
+    // input_name refers to the name of the input file without its file extension.
+    std::string input_name = input_full_name.substr(
+        0,
+        input_full_name.length() - input_full_name.substr(input_full_name.find('.')).length()
+    );
+//    std::string output_name = input_name + "_" + std::to_string(range);
+    std::string input_image_path = stringSrcPath(INPUT_PATH + input_full_name);
     byte* input_image;
     int input_width, input_height;
     Imagine::loadGreyImage(
@@ -296,18 +331,8 @@ int main() {
     );
 
     // ---- Cast input to binary ----
-    // Note : Imagine++ fills arrays row-wise (first row first, then second row, etc).
+    // Note : Imagine++ fills arrays row-wise (first row, then second row, etc).
     byte* binary_image = to_binary(input_image, input_height, input_width);
-
-    // ---- Display binary (uncomment if wanted) ----
-    std::cout<<"Image width : "<<input_width<<std::endl;
-    std::cout<<"Image height : "<<input_height<<std::endl;
-    Imagine::Window window;
-    /*window = Imagine::openWindow(input_width, input_height);
-    Imagine::setActiveWindow(window);
-    std::cout<<"Displaying binary image..."<<std::endl;
-    Imagine::putGreyImage(Imagine::IntPoint2(0, 0), binary_image, input_width, input_height);
-    Imagine::click();*/
 
     // ---- Create initial picture ----
     Picture picture(binary_image, input_height, input_width);
@@ -328,7 +353,7 @@ int main() {
     std::vector<int> pixel_counts = count_pixels(picture, nb_labels);
 
     // ---- Remove smaller connected set ----
-    remove_smaller_sets(picture, pixel_counts, nb_labels, min_pixel_nb);
+    remove_smaller_sets(picture, pixel_counts, nb_labels, min_pixels_nb);
 
     // ---- Create the vector of connected sets ----
     std::vector<ConnectedSet> connected_sets;
@@ -344,24 +369,14 @@ int main() {
     // ---- Create connected sets images in size order ----
     std::vector<byte*> connected_sets_images;
     // Largest window.
-    if (save_largest_with_input_size) {
-        byte* connected_set_image = to_black_and_white_image(
-            picture,
-            connected_sets,
-            labels_by_window_order[0],
-            input_height,
-            input_width
-        );
-        connected_sets_images.push_back(connected_set_image);
-    }
-    else {
-        byte* connected_set_image = to_black_and_white_image(
-            picture,
-            connected_sets,
-            labels_by_window_order[0]
-        );
-        connected_sets_images.push_back(connected_set_image);
-    }
+    byte* connected_set_image = to_black_and_white_image(
+        picture,
+        connected_sets,
+        labels_by_window_order[0],
+        isolate_largest_set ? input_height : -1,
+        isolate_largest_set ? input_width : -1
+    );
+    connected_sets_images.push_back(connected_set_image);
     // Other windows.
     for (int label = 1 ; label < labels_by_window_order.size() ; label++) {
         byte* connected_set_image = to_black_and_white_image(
@@ -372,34 +387,29 @@ int main() {
         connected_sets_images.push_back(connected_set_image);
     }
 
-    // ---- Display smallest windows in size order ----
-    /*for (int label = 0 ; label < labels_by_window_order.size() ; label++) {
-        int set_width = connected_sets[labels_by_window_order[label]].get_width();
-        int set_height = connected_sets[labels_by_window_order[label]].get_height();
-        std::cout<<"Width : "<<set_width<<" Height : "<<set_height<<std::endl;
-        window = Imagine::openWindow(
-            set_width,
-            set_height
-        );
-        Imagine::setActiveWindow(window);
-        Imagine::putGreyImage(
-            Imagine::IntPoint2(0, 0),
-            connected_set_images[label],
-            set_width,
-            set_height
-        );
-    }*/
-
     // ---- Save connected sets images ----
-    std::string set_name = output_name + "_(" + std::to_string(0) + ")" + output_extension;
+    // Largest window.
+    int set_upper_row = connected_sets[labels_by_window_order[0]].get_upper_row();
+    int set_left_col = connected_sets[labels_by_window_order[0]].get_left_col();
+    std::string set_name = (
+        isolate_largest_set ? LARGEST_SETS_PATH + input_name + OUTPUT_EXTENSION :
+        OUTPUT_PATH + input_name + "_" + std::to_string(set_upper_row) + "_" +
+        std::to_string(set_left_col) + OUTPUT_EXTENSION
+    );
     Imagine::saveGreyImage(
         stringSrcPath(set_name),
         connected_sets_images[0],
-        save_largest_with_input_size ? input_width : connected_sets[labels_by_window_order[0]].get_width(),
-        save_largest_with_input_size ? input_height : connected_sets[labels_by_window_order[0]].get_height()
+        isolate_largest_set ? input_width : connected_sets[labels_by_window_order[0]].get_width(),
+        isolate_largest_set ? input_height : connected_sets[labels_by_window_order[0]].get_height()
     );
+    // Other windows.
     for (int label = 1 ; label < connected_sets_images.size() ; label++) {
-        set_name = output_name + "_(" + std::to_string(label) + ")" + output_extension;
+        set_upper_row = connected_sets[labels_by_window_order[label]].get_upper_row();
+        set_left_col = connected_sets[labels_by_window_order[label]].get_left_col();
+        set_name = (
+            OUTPUT_PATH + input_name + "_" + std::to_string(set_upper_row) + "_" +
+            std::to_string(set_left_col) + OUTPUT_EXTENSION
+        );
         Imagine::saveGreyImage(
             stringSrcPath(set_name),
             connected_sets_images[label],
@@ -408,26 +418,79 @@ int main() {
         );
     }
 
-    // ---- Create colored image from the connected sets ----
-    /*std::srand((unsigned int)std::time(0)); // Initialize random seed.
-    byte* color_image = to_color_image(picture, nb_labels);*/
-
-    // ---- Display colored image (uncomment if wanted) ----
-    //std::cout<<"Number of labels : "<<nb_labels<<std::endl;
-    /*std::cout<<"Displaying colored image..."<<std::endl;
-    window = Imagine::openWindow(input_width, input_height);
-    Imagine::setActiveWindow(window);
-    Imagine::putColorImage(Imagine::IntPoint2(0, 0), color_image, input_width, input_height);
-    Imagine::click();*/
-
-    // ---- Save colored image ----
-    /*std::string color_name = output_name + output_extension;
-    Imagine::saveColorImage(stringSrcPath(color_name), color_image, input_width, input_height);*/
-
     // ---- Cleanup ----
     delete[] input_image;
     delete[] binary_image;
-    //delete[] color_image;
+    for (int label = 0 ; label < connected_sets_images.size() ; label++) {
+        delete[] connected_sets_images[label];
+    }
+}
+
+
+int main() {
+    // ---- Apply first cleanup on the raw input ----
+    if (PROCESS_RAW_INPUT) {
+        // c_str() casts a string to const char*.
+        DIR* raw_input_directory =  opendir(stringSrcPath(RAW_INPUT_PATH).c_str());
+        if (raw_input_directory == NULL) { // An error has occured.
+            perror("");
+        }
+        struct dirent* raw_input_file;
+        while ((raw_input_file = readdir(raw_input_directory)) != NULL) {
+            if (!strcmp(raw_input_file->d_name, ".") || !strcmp(raw_input_file->d_name, "..")) {
+                continue;
+            }
+            // -------- TO DO : APPLIQUER LE PREMIER ALGORITHME DE PRÉTRAITEMENT ------------
+            //std::cout << raw_input_file->d_name << std::endl;
+        }
+        if (closedir(raw_input_directory) == -1) { // Close directory.
+            perror("");
+        }
+    }
+
+    // ---- Apply connexity to the clean input (largest set saved in LARGEST_SETS_PATH) ----
+    DIR* input_directory =  opendir(stringSrcPath(INPUT_PATH).c_str());
+    if (input_directory == NULL) { // An error has occured.
+        perror("");
+    }
+    struct dirent* input_file;
+    while ((input_file = readdir(input_directory)) != NULL) {
+        if (!strcmp(input_file->d_name, ".") || !strcmp(input_file->d_name, "..")) {
+            continue;
+        }
+        std::string input_full_name = std::string(input_file->d_name);
+        compute_and_save_connected_sets(input_full_name, true, RANGE, MIN_PIXELS_NB);
+    }
+
+    // ---- Apply beam removal on largest sets ----
+    DIR* largest_sets_directory =  opendir(stringSrcPath(LARGEST_SETS_PATH).c_str());
+    if (largest_sets_directory == NULL) { // An error has occured.
+        perror("");
+    }
+    struct dirent* largest_set_file;
+    while ((largest_set_file = readdir(largest_sets_directory)) != NULL) {
+        if (!strcmp(largest_set_file->d_name, ".") || !strcmp(largest_set_file->d_name, "..")) {
+            continue;
+        }
+        //std::cout << largest_set_file->d_name << std::endl;
+    }
+
+    // ---- Apply connexity to the new input ----
+    rewinddir(input_directory); // Move the cursor to the beginning of the directory.
+    while ((input_file = readdir(input_directory)) != NULL) {
+        if (!strcmp(input_file->d_name, ".") || !strcmp(input_file->d_name, "..")) {
+            continue;
+        }
+        //std::cout << input_file->d_name << std::endl;
+    }
+
+    // ---- Close opened directories ----
+    if (closedir(input_directory) == -1) {
+        perror("");
+    }
+    if (closedir(largest_sets_directory) == -1) {
+        perror("");
+    }
 
     return 0;
 }
