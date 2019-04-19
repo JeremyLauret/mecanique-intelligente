@@ -1,20 +1,21 @@
-#include "pixel.h"
-//#include "picture.h"
-#include "connected_set.h"
-
 #include <vector>
 #include <algorithm>
-
 #include <dirent.h> // Provide directory manipulation.
-#include <cstdio>   // Provide perror().
+#include <cstdio>   // Provide perror() and remove().
+
+#include "pretraitement.h"
+#include "pixel.h"
+#include "picture.h"
+#include "connected_set.h"
 
 
-bool PROCESS_RAW_INPUT = false;
-int RANGE = 2;          // Range of pixels considered to be in the neighborhood of another pixel.
+bool PROCESS_RAW_INPUT = true;
+int RANGE = 15;          // Range of pixels considered to be in the neighborhood of another pixel.
 int MIN_PIXELS_NB = 10; // Minimum number of pixels in a connected set.
 std::string RAW_INPUT_PATH = "../raw_input/";
 std::string INPUT_PATH = "../input/";
 std::string LARGEST_SETS_PATH = "../largest_sets/";
+std::string HOUGH_PATH = "../hough_output/";
 std::string OUTPUT_PATH = "../output/";
 std::string OUTPUT_EXTENSION = ".jpg";
 
@@ -26,7 +27,7 @@ std::string OUTPUT_EXTENSION = ".jpg";
  */
 byte* to_binary(byte* image, int height, int width) {
     // ---- Find the maximal value in the input ----
-    int max_value = (byte)0;
+    byte max_value = (byte)0;
     for (int row = 0 ; row < height ; row++) {
         for (int col = 0 ; col < width ; col++) {
             if (max_value < image[col + width * row]) {
@@ -39,7 +40,7 @@ byte* to_binary(byte* image, int height, int width) {
     for (int row = 0 ; row < height ; row++) {
         for (int col = 0 ; col < width ; col++) {
             binary_image[col + width * row] = (
-                max_value > image[col + width * row] ?
+                max_value / 2 > image[col + width * row] ?
                 (byte)BLACK :
                 (byte)WHITE
             );
@@ -297,8 +298,8 @@ byte* to_black_and_white_image(
 
 
 /*
- * Core function of the program. Process a file belonging to the INPUT_PATH firectory and save its
- * connected sets in the OUTPUT_PATH directory.
+ * Core function of the program. Process a file belonging to the directory_path directory and save
+ * its connected sets in the OUTPUT_PATH directory.
  *
  * If isolate_largest_set is true, the largest connected set will be saved in LARGEST_SETS_PATH
  * with same size as the original image.
@@ -308,6 +309,7 @@ byte* to_black_and_white_image(
  * connected set.
  */
 void compute_and_save_connected_sets(
+    std::string input_path,
     std::string input_full_name,
     bool isolate_largest_set,
     int range=1,
@@ -319,7 +321,7 @@ void compute_and_save_connected_sets(
         0,
         input_full_name.length() - input_full_name.substr(input_full_name.find('.')).length()
     );
-    std::string input_image_path = stringSrcPath(INPUT_PATH + input_full_name);
+    std::string input_image_path = stringSrcPath(input_path + input_full_name);
     byte* input_image;
     int input_width, input_height;
     Imagine::loadGreyImage(
@@ -426,6 +428,61 @@ void compute_and_save_connected_sets(
 }
 
 
+void removeVariableIllumination(Img img, const Img& img_or) {
+    // j inverse l image pour travailler avec le modele additif
+    Img fond_blanc = img.clone();
+    fond_blanc.fill(255);
+    img = fond_blanc - img;
+    for(int i = 0 ; i < nb_iter ; i++){
+        for(int x = 0 ; x< img.width()  ; x++){
+            for(int y = 0 ; y < img.height() ; y++){
+                pix_trans(img, x, y);
+            }
+        }
+    }
+    int p ;
+    for(int x = 0 ; x< img.width()  ; x++){
+        for(int y = 0 ; y < img.height() ; y++){
+             p = img_or(x,y) + img(x,y) ;
+             if(p>255){
+                 p=255;
+             }
+             img(x,y) = p ;
+        }
+    }
+}
+
+
+void projection(Img img) {
+    int hist[256], hist_derv[256] ;
+    histogram(hist, img);
+    double m = 0. ;
+    for(int i = 0 ; i<256 ; i++){
+        m+=hist[i]*i/(img.height()*img.width());
+    }
+    projection_seuil(img,int(m)-5);
+}
+
+
+/**
+ * @brief getPreprocessedFullImage : retire l'illumination variable et effectue une projection sur
+ * le noir et le blanc de l'image, puis ne garde que des traits d'un pixel de large.
+ * @param img : image que l'on traite, qui est la sortie intéressante de cette fonction.
+ * @param img_or : image d'origine, extraite du fichier input.
+ */
+void getPreprocessedFullImage(Img img, const Img& img_or) {
+    // Retire l'illumination variable
+    removeVariableIllumination(img, img_or);
+    // Retire les pixels isolés de l'image
+    supprimePixelsIsoles(img);
+    // Effectue une projection sur le noir et le blanc de tous les pixels de l'image
+    projection(img);
+    // Réduit toutes les droites à une seule ligne d'un pixel de large
+    supprimeDroites(img);
+    retireDroites(img);
+}
+
+
 int main() {
     // ---- Apply first cleanup on the raw input ----
     if (PROCESS_RAW_INPUT) {
@@ -439,8 +496,21 @@ int main() {
             if (!strcmp(raw_input_file->d_name, ".") || !strcmp(raw_input_file->d_name, "..")) {
                 continue;
             }
-            // -------- TO DO : APPLIQUER LE PREMIER ALGORITHME DE PRÉTRAITEMENT ------------
-            //std::cout << raw_input_file->d_name << std::endl;
+            Img raw_input_image, cleaned_image;
+            if (!Imagine::load(
+                raw_input_image,
+                stringSrcPath(RAW_INPUT_PATH + std::string(raw_input_file->d_name)))
+            ){
+                perror("");
+            }
+            Imagine::Window raw_window = Imagine::openWindow(
+                raw_input_image.width(),
+                raw_input_image.height()
+            );
+            cleaned_image = raw_input_image.clone();
+            getPreprocessedFullImage(cleaned_image, raw_input_image);
+            std::string cleaned_name = INPUT_PATH + std::string(raw_input_file->d_name);
+            Imagine::save(cleaned_image, stringSrcPath(cleaned_name));
         }
         if (closedir(raw_input_directory) == -1) { // Close directory.
             perror("");
@@ -458,7 +528,7 @@ int main() {
             continue;
         }
         std::string input_full_name = std::string(input_file->d_name);
-        compute_and_save_connected_sets(input_full_name, true, RANGE, MIN_PIXELS_NB);
+        compute_and_save_connected_sets(INPUT_PATH, input_full_name, true, RANGE, MIN_PIXELS_NB);
     }
 
     // ---- Apply beam removal on largest sets ----
@@ -471,16 +541,61 @@ int main() {
         if (!strcmp(largest_set_file->d_name, ".") || !strcmp(largest_set_file->d_name, "..")) {
             continue;
         }
-        //std::cout << largest_set_file->d_name << std::endl;
+        Imagine::milliSleep(1500);
+        Img largest_set_image;
+        if (!Imagine::load(
+            largest_set_image,
+            stringSrcPath(LARGEST_SETS_PATH + std::string(largest_set_file->d_name)))
+        ){
+            perror("");
+        }
+        // Transformée de Hough
+        Imagine::Window hough_window = Imagine::openWindow(
+            largest_set_image.width(),
+            largest_set_image.height()
+        );
+        Imagine::setActiveWindow(hough_window);
+        std::vector<Img> hough_output = hough(largest_set_image);
+        std::string no_beam_name = HOUGH_PATH + std::string(largest_set_file->d_name);
+        std::string beam_name = HOUGH_PATH + "beam_" + std::string(largest_set_file->d_name);
+        Imagine::save(hough_output[0], stringSrcPath(no_beam_name));
+        Imagine::save(hough_output[1], stringSrcPath(beam_name));
     }
 
     // ---- Apply connexity to the new input ----
-    rewinddir(input_directory); // Move the cursor to the beginning of the directory.
-    while ((input_file = readdir(input_directory)) != NULL) {
-        if (!strcmp(input_file->d_name, ".") || !strcmp(input_file->d_name, "..")) {
+    DIR* hough_directory =  opendir(stringSrcPath(HOUGH_PATH).c_str());
+    if (hough_directory == NULL) { // An error has occured.
+        perror("");
+    }
+    struct dirent* hough_file;
+    while ((hough_file = readdir(hough_directory)) != NULL) {
+        if (!strcmp(hough_file->d_name, ".") || !strcmp(hough_file->d_name, "..")) {
             continue;
         }
-        //std::cout << input_file->d_name << std::endl;
+        std::string hough_full_name = std::string(hough_file->d_name);
+        compute_and_save_connected_sets(HOUGH_PATH, hough_full_name, false, RANGE, MIN_PIXELS_NB);
+    }
+
+    // ---- Remove intermediary files ----
+    // Largest sets directory.
+    rewinddir(largest_sets_directory);
+    while ((largest_set_file = readdir(largest_sets_directory)) != NULL) {
+        if (!strcmp(largest_set_file->d_name, ".") || !strcmp(largest_set_file->d_name, "..")) {
+            continue;
+        }
+        if (remove(stringSrcPath(LARGEST_SETS_PATH + std::string(largest_set_file->d_name)).c_str()) != 0) {
+            perror("");
+        }
+    }
+    // Hough output directory.
+    rewinddir(hough_directory);
+    while ((hough_file = readdir(hough_directory)) != NULL) {
+        if (!strcmp(hough_file->d_name, ".") || !strcmp(hough_file->d_name, "..")) {
+            continue;
+        }
+        if (remove(stringSrcPath(HOUGH_PATH + std::string(hough_file->d_name)).c_str()) != 0) {
+            perror("");
+        }
     }
 
     // ---- Close opened directories ----
@@ -488,6 +603,9 @@ int main() {
         perror("");
     }
     if (closedir(largest_sets_directory) == -1) {
+        perror("");
+    }
+    if (closedir(hough_directory) == -1) {
         perror("");
     }
 
