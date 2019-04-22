@@ -86,7 +86,7 @@ void projection_seuil(Img img, int seuil){
                 img(i,j)=0;     // NOIR
         }
     }
-    display(img);
+    //display(img);
 }
 
 
@@ -112,7 +112,7 @@ void supprimePixelsIsoles(Img img) {
             }
         }
     }
-    display(img);
+    //display(img);
 }
 
 
@@ -162,7 +162,7 @@ void supprimeDroites(Img img) {
         }
     }
 
-    display(img);
+    //display(img);
 }
 
 
@@ -195,7 +195,7 @@ void retireDroites(Img img){
             }
         }
     }
-    display(directions);
+    //display(directions);
 }
 
 
@@ -286,31 +286,31 @@ std::vector<Img> hough(Img img){
 
 
     // FENETRE 2
-    Imagine::Window W2 = Imagine::openWindow(img.width(), img.height(), "Droites détectées par transformée de Hough");
-    Imagine::setActiveWindow(W2);
+    //Imagine::Window W2 = Imagine::openWindow(img.width(), img.height(), "Droites détectées par transformée de Hough");
+    //Imagine::setActiveWindow(W2);
 
     // On rajoute une condition pour avoir un segment détecté : parmi les voisins d'un pixel détecté il doit y en avoir au moins un qui est noir
     nettoyageDroites(img, imgDroites);
     dessineDroite(imgDroites, 100, 0, img);
-    display(imgDroites);
+    //display(imgDroites);
 
 
 
     // FENETRE 3
-    Imagine::Window W3 = Imagine::openWindow(img.width(), img.height(), "Droites détectées par transformée de Hough, plus larges");
-    Imagine::setActiveWindow(W3);
+    //Imagine::Window W3 = Imagine::openWindow(img.width(), img.height(), "Droites détectées par transformée de Hough, plus larges");
+    //Imagine::setActiveWindow(W3);
 
     imgDroitesLarges = imgDroites.clone();
     dessineDroitesLarges(img, imgDroitesLarges, M, rho_max);
-    display(imgDroitesLarges);
+    //display(imgDroitesLarges);
 
 
 
     // FENETRE 4
-    Imagine::Window W4 = Imagine::openWindow(img.width(), img.height(), "Schéma décomposé, en ayant retiré les poutres et possiblement les flèches");
-    Imagine::setActiveWindow(W4);
+    //Imagine::Window W4 = Imagine::openWindow(img.width(), img.height(), "Schéma décomposé, en ayant retiré les poutres et possiblement les flèches");
+    //Imagine::setActiveWindow(W4);
     effaceDroitesLargesCalculees(img, imgDroitesLarges);
-    display(img);
+    //display(img);
 
 
     // Output de la fonction

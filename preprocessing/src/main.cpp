@@ -503,10 +503,10 @@ int main() {
             ){
                 perror("");
             }
-            Imagine::Window raw_window = Imagine::openWindow(
-                raw_input_image.width(),
-                raw_input_image.height()
-            );
+            //Imagine::Window raw_window = Imagine::openWindow(
+            //    raw_input_image.width(),
+            //    raw_input_image.height()
+            //);
             cleaned_image = raw_input_image.clone();
             getPreprocessedFullImage(cleaned_image, raw_input_image);
             std::string cleaned_name = INPUT_PATH + std::string(raw_input_file->d_name);
@@ -541,7 +541,7 @@ int main() {
         if (!strcmp(largest_set_file->d_name, ".") || !strcmp(largest_set_file->d_name, "..")) {
             continue;
         }
-        Imagine::milliSleep(1500);
+        //Imagine::milliSleep(1500);
         Img largest_set_image;
         if (!Imagine::load(
             largest_set_image,
@@ -550,11 +550,11 @@ int main() {
             perror("");
         }
         // Transformée de Hough
-        Imagine::Window hough_window = Imagine::openWindow(
-            largest_set_image.width(),
-            largest_set_image.height()
-        );
-        Imagine::setActiveWindow(hough_window);
+        //Imagine::Window hough_window = Imagine::openWindow(
+        //    largest_set_image.width(),
+        //    largest_set_image.height()
+        //);
+        //Imagine::setActiveWindow(hough_window);
         std::vector<Img> hough_output = hough(largest_set_image);
         std::string no_beam_name = HOUGH_PATH + std::string(largest_set_file->d_name);
         std::string beam_name = HOUGH_PATH + "beam_" + std::string(largest_set_file->d_name);
