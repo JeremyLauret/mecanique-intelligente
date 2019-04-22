@@ -44,7 +44,7 @@ void rechercheMaxRhoTheta(Img img, int M[], const int& rho_max, Img imgDroitesLa
                 int seuilDetectionDroite = 2;
                 debutFinDroite(img, rho, theta, xR, yR, xRf, yRf, 0, seuilDetectionDroite);
                 retireSegment(img, xR, yR, xRf, yRf);
-                Imagine::drawRect(xR, yR, abs(xRf-xR), abs(yRf-yR), Imagine::RED);
+                //Imagine::drawRect(xR, yR, abs(xRf-xR), abs(yRf-yR), Imagine::RED);
 
                 // On supprime les droites avec des rho ou theta très proches, i.e. plus proche que "ecart"
                 for (int dtheta=-ecart_hough; dtheta<ecart_hough+1; dtheta++){
