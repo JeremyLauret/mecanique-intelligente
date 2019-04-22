@@ -356,6 +356,11 @@ void compute_and_save_connected_sets(
     // ---- Remove smaller connected set ----
     remove_smaller_sets(picture, pixel_counts, nb_labels, min_pixels_nb);
 
+    // ---- Return if there are no connected sets left ----
+    if (nb_labels <= 0) {
+        return;
+    }
+
     // ---- Create the vector of connected sets ----
     std::vector<ConnectedSet> connected_sets;
     for (int label = 0 ; label < nb_labels ; label++) {
