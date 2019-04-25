@@ -1,3 +1,7 @@
 build/
 CMakeLists.txt.user
+raw_input/
+input/
+largest_sets/
+hough_output/
 output/
