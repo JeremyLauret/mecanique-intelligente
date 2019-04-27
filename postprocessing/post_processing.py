@@ -5,18 +5,31 @@ I = plt.imread("schema_crop.jpg")
 
 
 """ Variable globale : data = [[xmin, xmax, ymin, ymax, label], ...] sorted by label numbers"""
-## Exemple de data, code à adapter pour aller effectivement chercher les bonnes images dans les répertoires afin de créer cette matrice
 
 ##### ATTENTION : C++ NE CONSIDERE PAS LES MEMES AXES POUR LES IMAGES QUE PYTHON (LES AXES X ET Y SONT PROBABLEMENT INVERSES DONC IL FAUDRA PRENDRE CA EN COMPTE !!!)
+# Dictionnaire des labels : en ayant le nom d'un élément, on retrouve son label (int)
 LABELS = {"poutre": 1, "appui_simple":6, "appui_glissiere":7, "encastrement":8, "rotule":9, "cote":15, "force_ponctuelle":16, "force_distribuee":17, "a":18, "l":26, "m":27, "F":35, "theta":57}
 
+# Calcul du nombre de labels
+nb_labels = 1
+for label in LABELS:
+    if LABELS[label] > nb_labels:
+        nb_labels = LABELS[label] +1
+
+# Création d'un dictionnaire inversé : à partir du label on retrouve le nom de l'élément en LABELS_INV[label]
+LABELS_INV = [""]*nb_labels
+for label in LABELS:
+    LABELS_INV[LABELS[label]] = label
+
+
+## Exemple de data, code à adapter pour aller effectivement chercher les bonnes images dans les répertoires afin de créer cette matrice
 data = np.array([
     [119, 43, 127, 245, LABELS["poutre"]], 
     [52, 366, 54, 499, LABELS["poutre"]], 
     [57, 245, 123, 358, LABELS["poutre"]], 
     [122, 7, 172, 69, LABELS["appui_simple"]],
     [122, 213, 168, 271, LABELS["appui_glissiere"]],
-    [33, 498, 54, 499, LABELS["encastrement"]],
+    [33, 498, 72, 514, LABELS["encastrement"]],
     [48, 356, 60, 369, LABELS["rotule"]],
     [45, 240, 111, 353, LABELS["cote"]],
     [189, 21, 210, 247, LABELS["cote"]],
@@ -51,6 +64,10 @@ for i in range(nb_poutres, len(data)):
         ind_liaisons.append(i)
 
 
+
+
+
+
 ## FONCTIONS AUXILIAIRES DE LA CLASSE POUTRE
 # Détermine, pour une fenêtre contenant une poutre, dans quel sens est orientée la poutre
 def originePoutre(I, xmin, xmax, ymin, ymax):
@@ -73,20 +90,102 @@ def originePoutre(I, xmin, xmax, ymin, ymax):
 
 
 def vecteurDirecteur(origine, xmin, xmax, ymin, ymax):
-    alpha = 1/10
+    alpha = 1/5
+    dx = xmax - xmin
+    dy = ymax - ymin
 
-    if ((xmax-xmin) < alpha * (ymax-ymin)): #Poutre horizontale
-        return [0,ymax-ymin]
-    elif ((ymax-ymin) < alpha * (xmax-xmin)):   #Poutre verticale
-        return [xmax-xmin,0]
+    if (dx < alpha * dy): #Poutre horizontale
+        return [0,dy]
+    elif (dy < alpha * dx):   #Poutre verticale
+        return [dx,0]
 
     if (origine[0] == xmin and origine[1]==ymin):   #Cas où l'origine est en haut à gauche de la fenêtre
-        return [xmax-xmin, ymax-ymin]
+        return [dx, dy]
     else:
-        return[xmin-xmax, ymax-ymin]
+        return[-dx, dy]
 
 
+def origineVecteurDirecteurForce(I, xmin, xmax, ymin, ymax):
+    alpha = 1/2
+    dx = xmax-xmin
+    dy = ymax-ymin
+    dim_x_fenetre = int(dx/10)
+    dim_y_fenetre = int(dy/10)
+    
+    # Cas d'une force horizontale
+    if (dx < alpha * dy):
+        count_gauche = np.sum(I[:, ymin:ymin+dim_y_fenetre])
+        count_droite = np.sum(I[:, ymax-dim_y_fenetre:ymax])
         
+        if count_gauche < count_droite : # Pixels blancs = 255, noirs = 0, donc on cherche le minimum qui indique le bout de la flèche
+            #Pointe de la flèche à gauche, donc on choisit l'origine à droite
+            origine = [int((xmin+xmax)/2), ymax]
+            vecteurDirecteur = [0, -dy]
+            return origine, vecteurDirecteur
+        else :
+            #Pointe de la flèche à droite, donc on choisit l'origine à gauche
+            origine = [int((xmin+xmax)/2), ymin]
+            vecteurDirecteur = [0, dy]
+            return origine, vecteurDirecteur
+            
+    
+    # Cas d'une force verticale
+    if (dy < alpha * dx):
+        count_haut = np.sum(I[xmin:xmin+dim_x_fenetre, :])
+        count_bas = np.sum(I[xmax-dim_x_fenetre:xmax, :])
+
+        if count_haut < count_bas : # Pixels blancs = 255, noirs = 0, donc on cherche le minimum qui indique le bout de la flèche
+            #Pointe de la flèche en haut, donc on choisit l'origine en bas
+            origine = [xmax, int((ymin+ymax)/2)]
+            vecteurDirecteur = [-dx, 0]
+            return origine, vecteurDirecteur
+        else :
+            #Pointe de la flèche en bas, donc on choisit l'origine en haut
+            origine = [xmin, int((ymin+ymax)/2)]
+            vecteurDirecteur = [dx, 0]
+            return origine, vecteurDirecteur
+    
+    
+    # Sinon, Cas d'une force quelconque
+    count_hg = np.sum(I[xmin:xmin+dim_x_fenetre, ymin:ymin+dim_y_fenetre])
+    count_bd = np.sum(I[xmax-dim_x_fenetre:xmax, ymax-dim_y_fenetre:ymax])
+    count_hd = np.sum(I[xmin:xmin+dim_x_fenetre, ymax-dim_y_fenetre:ymax])
+    count_bg = np.sum(I[xmax-dim_x_fenetre:xmax, ymin:ymin+dim_y_fenetre])
+    count_diag_haut_gauche = count_hg + count_bd
+    count_diag_bas_gauche = count_hd + count_bg
+    
+    if count_diag_haut_gauche < count_diag_bas_gauche :
+        #Cas où la force est selon la droite (haut gauche, bas droite)
+        if count_hg < count_bd :
+            # Cas où la pointe de la flèche est en haut à gauche
+            origine = [xmax, ymax]
+            vecteurDirecteur = [-dx, -dy]
+            return origine, vecteurDirecteur
+        else :
+            # Cas où la pointe de la flèche est en bas à droite
+            origine = [xmin, ymin]
+            vecteurDirecteur = [dx, dy]
+            return origine, vecteurDirecteur
+    else :
+        #Cas où la force est selon la droite (bas gauche, haut droite)
+        if count_bg < count_hd:
+            # Cas où la pointe de la flèche est en bas à gauche
+            origine = [xmin, ymax]
+            vecteurDirecteur = [dx, -dy]
+            return origine, vecteurDirecteur
+        else:
+            # Cas où la pointe de la flèche est en haut à droite
+            origine = [xmax, ymin]
+            vecteurDirecteur = [-dx, dy]
+            return origine, vecteurDirecteur
+    
+
+def angleAxeX(vecteurDirecteur):
+    # Angle retourné en degrés, entre -90° et 90°
+    if vecteurDirecteur[0] == 0:
+        return 90
+    else:
+        return np.arctan(vecteurDirecteur[1]/vecteurDirecteur[0]) * 180/np.pi
 
 
 class Poutre :
@@ -138,6 +237,62 @@ class Poutre :
         print()
 
 
+class Cote:
+    def __init__(self, identifiant):
+        self.id = identifiant
+        self.length = ""
+        
+        xmin, xmax, ymin, ymax = data[identifiant,:4]
+        
+        self.origine = originePoutre(I, xmin, xmax, ymin, ymax)
+        self.vecteurDirecteur = vecteurDirecteur(self.origine, xmin, xmax, ymin, ymax)
+    
+    def display(self):
+        print('Cote n°' + str(self.id))
+        print("Longueur : " + str(self.length))
+        print("Origine de la cote : x = " + str(self.origine[0]) + ", y = " + str(self.origine[1]))
+        print("Vecteur directeur de la cote : " + str(self.vecteurDirecteur))
+        print()
+        
+
+class Force:
+    def __init__(self, identifiant):
+        self.id = identifiant
+        
+        self.type = LABELS_INV[data[identifiant,4]]
+        
+        xmin, xmax, ymin, ymax = data[identifiant,:4]
+        self.origine, self.vecteurDirecteur = origineVecteurDirecteurForce(I, xmin, xmax, ymin, ymax)
+        
+        self.angle = angleAxeX(self.vecteurDirecteur)   # Angle en degrés, par rapport à l'axe X
+    
+    def display(self):
+        print("Force n°" + str(self.id))
+        print("Force de type " + self.type)
+        print("Origine : x = " + str(self.origine[0]) + ", y = " + str(self.origine[1]))
+        print("Vecteur directeur : " + str(self.vecteurDirecteur))
+        print("Angle " + str(self.angle))
+
+
+class Liaison:
+    def __init__(self, identifiant):
+        self.id = identifiant
+        self.type = LABELS_INV[data[identifiant,4]]
+        
+        xmin, xmax, ymin, ymax = data[identifiant, :4]
+        self.centre = [int((xmin+xmax)/2), int((ymin+ymax)/2)]
+        self.rayon = np.maximum((xmax-xmin)/2, (ymax-ymin)/2)
+    
+    def display(self):
+        print("Liaison n°" + str(self.id))
+        print("Liaison de type : " + self.type)
+        print("Centre du patch de la liaison : x = " + str(self.centre[0]) + ", y = " + str(self.centre[1]))
+        print("Demi-plus grand côté : " + str(self.rayon))
+        print()
+
+
+
+
 # 1ere étape : Vecteur directeur + origine + distance
 ## 2eme étape : Longueurs
 ## 3eme étape : Liaisons
@@ -147,13 +302,57 @@ class Poutre :
 
 
 
-## Lecture des données et création des poutres
+## Lecture des données et création des poutres, cotes et forces
 Poutres = []
 
-for i in range(nb_poutres):
-    poutre = Poutre(i)
+for ind_poutre in range(nb_poutres):
+    poutre = Poutre(ind_poutre)
     Poutres.append(poutre)
 
+Cotes = []
+for ind_cote in range(len(ind_cotes)):
+    cote = Cote(ind_cotes[ind_cote])
+    Cotes.append(cote)
+
+Forces = []
+for ind_force in range(len(ind_forces)):
+    force = Force(ind_forces[ind_force])
+    Forces.append(force)
+
+Liaisons = []
+for ind_liaison in range(len(ind_liaisons)):
+    liaison = Liaison(ind_liaisons[ind_liaison])
+    Liaisons.append(liaison)
+
+
 ## Affichage de toutes les données des poutres
-for i in range(nb_poutres):
-    Poutres[i].display()
+print("# --------------- POUTRES --------------- ")
+for ind_poutre in range(nb_poutres):
+    Poutres[ind_poutre].display()
+
+print("# --------------- COTES --------------- ")
+for ind_cote in range(len(ind_cotes)):
+    Cotes[ind_cote].display()
+
+print("# --------------- FORCES --------------- ")
+for ind_force in range(len(ind_forces)):
+    Forces[ind_force].display()
+
+print("# --------------- LIAISONS --------------- ")
+for ind_liaison in range(len(ind_liaisons)):
+    Liaisons[ind_liaison].display()
+
+
+
+## Visualisation de tous les patchs
+def visualisePatch(dataPatch):
+    xmin, xmax, ymin, ymax = dataPatch[:4]
+    plt.plot([ymin, ymin], [xmin, xmax], 'r')
+    plt.plot([ymax, ymax], [xmin, xmax], 'r')
+    plt.plot([ymin, ymax], [xmin, xmin], 'r')
+    plt.plot([ymin, ymax], [xmax, xmax], 'r')
+    plt.show()
+
+plt.imshow(I, cmap='gray')
+for i in range(len(data)):
+    visualisePatch(data[i])
