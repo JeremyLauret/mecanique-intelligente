@@ -64,7 +64,8 @@ for i in range(nb_poutres, len(data)):
         ind_liaisons.append(i)
 
 
-
+## Constantes liées à la discrétisation du problème et aux proportions
+NB_PAS_POUTRES = 5   # On discrétise les poutres en NB_PAS_POUTRES afin de définir ensuite les proportions des cotes par rapport à cette discrétisation (ex : une cote vaut 3/5 de la poutre associée et non 0.57385219)
 
 
 
@@ -235,6 +236,16 @@ class Poutre :
         print("Forces ponctuelles : " + str(self.forces_ponctuelles))
         print("Forces linéiques : " + str(self.forces_lineiques))
         print()
+    
+    def getOrigin(self):
+        return self.origine
+    
+    def getVectDir(self):
+        return self.vecteur_directeur
+        
+    def setCote(self, lettreNorme, proportion):
+        """ Prend la lettre de la longueur de la cote ainsi que le rapport de la longueur de la cote sur celle de la poutre """
+        self.longueurs.append((lettreNorme, proportion))
 
 
 class Cote:
@@ -253,6 +264,18 @@ class Cote:
         print("Origine de la cote : x = " + str(self.origine[0]) + ", y = " + str(self.origine[1]))
         print("Vecteur directeur de la cote : " + str(self.vecteurDirecteur))
         print()
+    
+    def getId(self):
+        return self.id
+    
+    def getLength(self):
+        return self.length
+    
+    def getOrigin(self):
+        return self.origine
+    
+    def getVectDir(self):
+        return self.vecteurDirecteur
         
 
 class Force:
@@ -272,6 +295,22 @@ class Force:
         print("Origine : x = " + str(self.origine[0]) + ", y = " + str(self.origine[1]))
         print("Vecteur directeur : " + str(self.vecteurDirecteur))
         print("Angle " + str(self.angle))
+        print()
+
+    def getId(self):
+        return self.id
+        
+    def getType(self):
+        return self.type
+        
+    def getOrigin(self):
+        return self.origine
+    
+    def getVectDir(self):
+        return self.vecteurDirecteur
+    
+    def getAngle(self):
+        return self.angle
 
 
 class Liaison:
@@ -289,8 +328,18 @@ class Liaison:
         print("Centre du patch de la liaison : x = " + str(self.centre[0]) + ", y = " + str(self.centre[1]))
         print("Demi-plus grand côté : " + str(self.rayon))
         print()
-
-
+    
+    def getId(self):
+        return self.id
+    
+    def getType(self):
+        return self.type
+    
+    def getCenter(self):
+        return self.centre
+    
+    def getRadius(self):
+        return self.rayon
 
 
 # 1ere étape : Vecteur directeur + origine + distance
@@ -299,6 +348,8 @@ class Liaison:
 ## 4eme étape : Forces
 ## 5eme étape : Moments
 ## 6eme étape : Points spéciaux
+
+
 
 
 
@@ -325,24 +376,127 @@ for ind_liaison in range(len(ind_liaisons)):
     Liaisons.append(liaison)
 
 
+## Attribution d'une cote à une poutre
+def attribueCote(cote):
+    """
+    Prend en entrée une cote et donne l'identifiant de la poutre à laquelle affecter la cote
+    """
+    epsScal = 0.05 # Seuil de tolérance sur le parallélisme
+    alpha = 0.1
+    
+    vdC = cote.getVectDir()
+    origC = cote.getOrigin()
+    normC = np.sqrt(np.dot(vdC, vdC))
+    
+    for poutre in Poutres:
+        vdP = poutre.getVectDir()
+        origP = poutre.getOrigin()
+        normP = np.sqrt(np.dot(vdP, vdP))
+        
+        prodScalaire = abs( np.dot(vdC, vdP) / (normC * normP) )
+        diffX0 = abs(origP[0] - origC[0])
+        diffY0 = abs(origP[1] - origC[1])
+        diffXf = abs(origP[0] + vdP[0] - origC[0] - vdC[0])
+        diffYf = abs(origP[1] + vdP[1] - origC[1] - vdC[1])
+        
+        if ((prodScalaire >= 1-epsScal) and 
+            (   (diffX0 <= alpha * poutre.distance) or 
+                (diffY0 <= alpha * poutre.distance) or 
+                (diffXf <= alpha * poutre.distance) or 
+                (diffYf <= alpha * poutre.distance) ) ) : # Cas de cote parallèle à une poutre, et avec au moins une extrêmité de la cote alignée à celle de la poutre
+            proportion = int(normC / normP * NB_PAS_POUTRES) / NB_PAS_POUTRES
+            poutre.setCote(cote.length, proportion)
+        
+        elif ((prodScalaire < 1-epsScal) and 
+            (   ((diffX0 <= alpha * poutre.distance) and (diffXf <= alpha * poutre.distance)) or 
+                ((diffY0 <= alpha * poutre.distance) and (diffYf <= alpha * poutre.distance)) ) ) : # Cas de poutre non parallèle à la cote, mais la cote est exactement alignée avec le début et la fin de la poutre (ex: poutre transverse)
+            # même code que dans le if précédent
+            proportion = int(normC / normP * NB_PAS_POUTRES) / NB_PAS_POUTRES
+            poutre.setCote(cote.length, proportion)
+
+
+# Application de attribueCote()
+for cote in Cotes:
+    attribueCote(cote)
+
+
+## Attribution d'une force à une poutre
+def equationDroite(vectDir, orig, x):
+    """ Retourne l'ordonnée d'un point d'abscisse x sur un droite caractérisée par son origine et son vecteur directeur """
+    a, b = vectDir
+    x0, y0 = orig
+    c = b*x0 - a*y0
+    if (a == 0):
+        return None
+    else :
+        return ((b * x - c)/a)
+
+
+def attribueForce(force):
+    
+    origF = np.array(force.getOrigin())
+    vdF = np.array(force.getVectDir())
+    
+    for poutre in Poutres:
+        origP = np.array(poutre.getOrigin())
+        vdP = np.array(poutre.getVectDir())
+        normP = np.linalg.norm(vdP)
+        
+        #Projection du vecteur force selon le vecteur directeur unitaire de la poutre
+        pi_F = np.dot(vdF, vdP)/(normP**2) * vdP
+        
+        # Equation de la poutre de vecteur directeur (a,b) : -b*x + a*y + c = 0
+        # c de l'équation
+        c = vdP[1] * origP[0] - vdP[0] * origP[1]
+        
+        # L = distance origine de la force à la poutre
+        L = abs(-vdP[1] * origF[0] + vdP[0] * origF[1] + c) / np.sqrt(np.dot(vdP, vdP))
+        # d = distance origine de la force à origine de la poutre
+        d = np.linalg.norm(origF - origP)
+        # x0 = abscisse curviligne du projeté de la force sur la poutre
+        x0 = np.sqrt(L*L + d*d)
+        
+        X0 = x0 * vdP / normP + origP
+        
+        # F - pi_F
+        diff = vdF - pi_F
+        X = X0 + L/np.linalg.norm(diff) * pi_F
+        
+        # Calcul de l'abscisse curviligne du point d'application de la force sur la poutre (valeur comprise entre 0 et 1 si la force s'applique bien à la poutre)
+        normeX = np.linalg.norm(X - origP)
+        proportion = normeX / normP
+        
+        if (np.dot(vdF, vdP) != 0):
+            proportion *= np.sign(np.dot(vdF, vdP))
+        else :
+            proportion *= np.sign(np.dot(vdP, vdF+origF-origP))
+        
+        if (proportion >= 0 and proportion <= 1):
+            print("Poutre " + str(poutre.id))
+            print("Proportion : " + str(proportion))
+        #### A COMPLETER
+
+
 ## Affichage de toutes les données des poutres
-print("# --------------- POUTRES --------------- ")
-for ind_poutre in range(nb_poutres):
-    Poutres[ind_poutre].display()
+def displayAll():
+    print("# --------------- POUTRES --------------- ")
+    for ind_poutre in range(nb_poutres):
+        Poutres[ind_poutre].display()
+    
+    print("# --------------- COTES --------------- ")
+    for ind_cote in range(len(ind_cotes)):
+        Cotes[ind_cote].display()
+    
+    print("# --------------- FORCES --------------- ")
+    for ind_force in range(len(ind_forces)):
+        Forces[ind_force].display()
+    
+    print("# --------------- LIAISONS --------------- ")
+    for ind_liaison in range(len(ind_liaisons)):
+        Liaisons[ind_liaison].display()
 
-print("# --------------- COTES --------------- ")
-for ind_cote in range(len(ind_cotes)):
-    Cotes[ind_cote].display()
 
-print("# --------------- FORCES --------------- ")
-for ind_force in range(len(ind_forces)):
-    Forces[ind_force].display()
-
-print("# --------------- LIAISONS --------------- ")
-for ind_liaison in range(len(ind_liaisons)):
-    Liaisons[ind_liaison].display()
-
-
+displayAll()
 
 ## Visualisation de tous les patchs
 def visualisePatch(dataPatch):
