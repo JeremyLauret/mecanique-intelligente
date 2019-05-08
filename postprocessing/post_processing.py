@@ -71,24 +71,24 @@ NB_PAS_POUTRES = 5   # On discrétise les poutres en NB_PAS_POUTRES afin de déf
 
 
 ##FONCTIONS GENERALES POUR LA PROXIMITE
-def dist((x1,y1),(x2,y2)):
+def dist(x1,y1,x2,y2):
     '''norme euclidienne entre deux points du plan'''
     return(np.sqrt((x1-x2)**2 + (y1-y2)**2))
 
-def rect_distance((xmin_1,xmax_1,ymin_1,ymax_1), (xmin_2,xmax_2,ymin_2,ymax_2)):
+def rect_distance(xmin_1,xmax_1,ymin_1,ymax_1,xmin_2,xmax_2,ymin_2,ymax_2):
     '''distance entre deux rectangles dont les côtés sont selon les mêmes axes (pas de rotation)'''
     left = ymax_2 < ymin_1 #the second rectangle is at the left side of the first
     right = ymax_1 < ymin_2
     bottom = xmax_1 < xmin_2
     top = xmax_2 < xmin_1
     if top and left:
-        return dist((xmin_1, ymin_1), (xmax_2, ymax_2))
+        return dist(xmin_1, ymin_1,xmax_2, ymax_2)
     elif left and bottom:
-        return dist((xmax_1, ymin_1), (xmin_2, ymax_2))
+        return dist(xmax_1, ymin_1,xmin_2, ymax_2)
     elif bottom and right:
-        return dist((xmax_1, ymax_1), (xmin_2, ymin_2))
+        return dist(xmax_1, ymax_1,xmin_2, ymin_2)
     elif right and top:
-        return dist((xmin_1, ymax_1), (xmax_2, ymin_2))
+        return dist(xmin_1, ymax_1,xmax_2, ymin_2)
     elif left:
         return ymin_1 - ymax_2
     elif right:
@@ -110,7 +110,7 @@ def attribueCaractere(I,id_car):
     for k in range(len(data)):
         if(k!=id_car):
             [xmin2, xmax2, ymin2, ymax2, label2] = data[k]
-            dist = rect_distance((xmin,xmax,ymin,ymax), (xmin2,xmax2,ymin2,ymax2))
+            dist = rect_distance(xmin,xmax,ymin,ymax,xmin2,xmax2,ymin2,ymax2)
             if(dist<d_min):
                 id_min = k
                 d_min = dist
