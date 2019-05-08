@@ -14,9 +14,10 @@ const bool PROCESS_RAW_INPUT = true;
 // Number of iterations for the background removing algorithm.
 const int NB_BACK_DELETION_ITER{ 8 };
 // Range of pixels considered to be in the neighborhood of another pixel.
-const int RANGE{ 5 };
+const int FIRST_RANGE{ 10 };
+const int SECOND_RANGE{ 5 };
 // Minimum number of pixels in a connected set.
-const int MIN_PIXELS_NB{ 40 };
+const int MIN_PIXELS_NB{ 100 };
 // Lines longer than this percentage of the length of the longest detected line is a beam.
 const int HOUGH_RELATIVE_SIZE{ 40 };
 // Number of different values of theta considered (0 <= theta < 180).
@@ -493,7 +494,7 @@ int main() {
             continue;
         }
         std::string input_full_name = std::string(input_file->d_name);
-        compute_and_save_connected_sets(INPUT_PATH, input_full_name, true, RANGE, MIN_PIXELS_NB);
+        compute_and_save_connected_sets(INPUT_PATH, input_full_name, true, FIRST_RANGE, MIN_PIXELS_NB);
     }
 
     // ---- Apply beam removal on largest sets ----
@@ -534,7 +535,7 @@ int main() {
             continue;
         }
         std::string hough_full_name = std::string(hough_file->d_name);
-        compute_and_save_connected_sets(HOUGH_PATH, hough_full_name, false, RANGE, MIN_PIXELS_NB);
+        compute_and_save_connected_sets(HOUGH_PATH, hough_full_name, false, SECOND_RANGE, MIN_PIXELS_NB);
     }
 
 //    // ---- Remove intermediary files ----
