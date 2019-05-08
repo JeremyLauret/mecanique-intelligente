@@ -2,6 +2,27 @@ import numpy as np
 from constantes import *
 from data_example import *
 
+## FONCTION POUR LA DETERMINATION DE PROPORTION
+def proportion(x):
+    """ Pour un réel 0<= x <= 1, on détermine son arrondi en 1/5, 1/4, 1/3 ou 1/2
+        Exemple : proportion sur une poutre du point d'application d'une force"""
+    dist0 = abs(x)
+    dist1 = abs(1-x)
+
+    distMin = dist0
+    proportionOptimale = 0
+    if (dist1 < dist0):
+        distMin = dist1
+        proportionOptimale = 1
+
+    for N in range(2,NB_PAS_POUTRES+1):
+        for k in range(1, N):
+            distInterm = abs(x-k/N)
+            if distInterm < distMin :
+                distMin = distInterm
+                proportionOptimale = k/N
+
+    return proportionOptimale
 
 ##FONCTIONS GENERALES POUR LA PROXIMITE
 def dist(p1,p2):
@@ -166,23 +187,15 @@ def angleAxeX(vecteurDirecteur):
 
 
 ## Attribution d'une force à une poutre
-def equationDroite(vectDir, orig, x):
-    """ Retourne l'ordonnée d'un point d'abscisse x sur un droite caractérisée par son origine et son vecteur directeur """
-    a, b = vectDir
-    x0, y0 = orig
-    c = b*x0 - a*y0
-    if (a == 0):
-        return None
-    else :
-        return ((b * x - c)/a)
-
-
 def attribueForce(force, Poutres):
-
+    # Origine et vecteur directeur de la force à attribuer
     origF = np.array(force.getOrigin())
     vdF = np.array(force.getVectDir())
+    normF = np.linalg.norm(vdF)
 
+    # pour chaque poutre
     for poutre in Poutres:
+        # Origine, vecteur directeur et norme de la poutre
         origP = np.array(poutre.getOrigin())
         vdP = np.array(poutre.getVectDir())
         normP = np.linalg.norm(vdP)
@@ -195,30 +208,32 @@ def attribueForce(force, Poutres):
         c = vdP[1] * origP[0] - vdP[0] * origP[1]
 
         # L = distance origine de la force à la poutre
-        L = abs(-vdP[1] * origF[0] + vdP[0] * origF[1] + c) / np.sqrt(np.dot(vdP, vdP))
-        # d = distance origine de la force à origine de la poutre
-        d = np.linalg.norm(origF - origP)
+        L = abs(-vdP[1] * origF[0] + vdP[0] * origF[1] + c) / normP
         # x0 = abscisse curviligne du projeté de la force sur la poutre
-        x0 = np.sqrt(L*L + d*d)
+        x0 = np.dot(origF-origP, vdP) / normP
 
         X0 = x0 * vdP / normP + origP
-
+        
         # F - pi_F
         diff = vdF - pi_F
-        X = X0 + L/np.linalg.norm(diff) * pi_F
-
+        X = X0 + L/np.linalg.norm(diff) * pi_F  # X = point d'application de la force sur la poutre
+        
         # Calcul de l'abscisse curviligne du point d'application de la force sur la poutre (valeur comprise entre 0 et 1 si la force s'applique bien à la poutre)
         normeX = np.linalg.norm(X - origP)
-        proportion = normeX / normP
-
+        prop = normeX / normP
+        
         if (np.dot(vdF, vdP) != 0):
-            proportion *= np.sign(np.dot(vdF, vdP))
+            print("ici")
+            prop *= np.sign(np.dot(vdF, vdP))
         else :
-            proportion *= np.sign(np.dot(vdP, vdF+origF-origP))
+            print("là")
+            prop *= np.sign(np.dot(vdP, vdF+origF-origP))
 
-        if (proportion >= 0 and proportion <= 1):
+        if (prop >= 0 and prop <= 1):
             print("Poutre " + str(poutre.id))
-            print("Proportion : " + str(proportion))
+            propOptim = proportion(prop)
+            print("Proportion : " + str(propOptim))
+            poutre.setForce(force, propOptim)
         #### A COMPLETER
 
 
@@ -254,15 +269,15 @@ def attribueCote(cote, Poutres):
                 (diffY0 <= alpha * poutre.distance) or
                 (diffXf <= alpha * poutre.distance) or
                 (diffYf <= alpha * poutre.distance) ) ) : # Cas de cote parallèle à une poutre, et avec au moins une extrêmité de la cote alignée à celle de la poutre
-            proportion = int(normC / normP * NB_PAS_POUTRES) / NB_PAS_POUTRES
-            poutre.setCote(cote.length, proportion)
+            prop = proportion(normC / normP)
+            poutre.setCote(cote.length, prop)
 
         elif ((prodScalaire < 1-epsScal) and
             (   ((diffX0 <= alpha * poutre.distance) and (diffXf <= alpha * poutre.distance)) or
                 ((diffY0 <= alpha * poutre.distance) and (diffYf <= alpha * poutre.distance)) ) ) : # Cas de poutre non parallèle à la cote, mais la cote est exactement alignée avec le début et la fin de la poutre (ex: poutre transverse)
             # même code que dans le if précédent
-            proportion = int(normC / normP * NB_PAS_POUTRES) / NB_PAS_POUTRES
-            poutre.setCote(cote.length, proportion)
+            prop = proportion(normC / normP)
+            poutre.setCote(cote.length, prop)
 
 
 
@@ -289,7 +304,7 @@ def attribueCaractere(id_car, Cotes, Forces):
             d_min = dist
             label_min = label2
     # print('Caractère {} avec index {} dans data attribué à élément {} index {}'.format(caractere,id_car,LABELS_INV[label_min],id_min))
-    if LABELS_INV[label_min] == 'cote':
+    if (LABELS_INV[label_min] == 'cote_longueur' or LABELS_INV[label_min] == 'cote_rayon_courbe'):
         for cote in Cotes:
             if cote.getId() == id_min:
                 cote.setCaractere(caractere)

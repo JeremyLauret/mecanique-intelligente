@@ -28,6 +28,9 @@ class Force:
 
     def getType(self):
         return self.type
+    
+    def getNorme(self):
+        return self.norme
 
     def getOrigin(self):
         return self.origine

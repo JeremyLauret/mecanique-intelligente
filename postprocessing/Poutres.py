@@ -11,7 +11,7 @@ class Poutre :
         self.id = identifiant
         # Cotes définies sur la figure, on enregistre la lettre et on met à jour la longueur de la poutre
         self.longueurs=[]
-        # Forces ponctuelles appliquées à la poutre, on enregistre sa lettre de norme, son vecteur directeur
+        # Forces ponctuelles appliquées à la poutre, on enregistre sa lettre de norme, son vecteur directeur, son point d'application proportionnellement à la longueur de la poutre
         self.forces_ponctuelles=[]
         # Forces réparties, on enregistre, la densité et la longueur selon la poutre (points d'application de début et de fin)
         self.forces_lineiques=[]
@@ -60,3 +60,7 @@ class Poutre :
     def setCote(self, lettreNorme, proportion):
         """ Prend la lettre de la longueur de la cote ainsi que le rapport de la longueur de la cote sur celle de la poutre """
         self.longueurs.append((lettreNorme, proportion))
+    
+    def setForce(self, force, prop):
+        if (force.getType() == "force_ponctuelle"):
+            self.forces_ponctuelles.append((force.getNorme(), force.getVectDir(), prop))

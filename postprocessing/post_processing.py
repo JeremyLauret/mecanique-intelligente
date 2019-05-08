@@ -61,6 +61,9 @@ for ind_liaison in range(len(ind_liaisons)):
     liaison = Liaison(ind_liaisons[ind_liaison])
     Liaisons.append(liaison)
 
+
+
+
 ## Affectation des éléments entre eux
 # Application de attribueCaractere() : Affectation de chaque caractère à un élément de la structure
 for ind_caractere in ind_caracteres:
@@ -83,7 +86,7 @@ for force in Forces:
 def dispAll():
     displayAll(Poutres, nb_poutres, Cotes, ind_cotes, Forces, ind_forces, Liaisons, ind_liaisons)
 
-dispAll()
+# dispAll()
 
 ## Visualisation de tous les patchs
 plt.imshow(I, cmap='gray')
