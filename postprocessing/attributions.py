@@ -324,14 +324,10 @@ def connectePoutre(poutre, Poutres):
             extremB1 = np.array(beam.getOrigin())
             extremB2 = extremB1 + np.array(beam.getVectDir())
             
-            if (dist(extrem1, extremB1) <= sensibilite or
-                dist(extrem1, extremB2) <= sensibilite or
-                dist(extrem2, extremB1) <= sensibilite or
-                dist(extrem2, extremB2) <= sensibilite):
-                    listePoutresConnectees.append(beam.getId())
-    
-    for beam in listePoutresConnectees:
-        poutre.setConnexionPoutre(beam)
+            if (dist(extrem1, extremB1) <= sensibilite or dist(extrem2, extremB1) <= sensibilite):
+                poutre.setConnexionPoutre(beam.getId(), [extremB1[0], extremB1[1]])
+            elif (dist(extrem1, extremB2) <= sensibilite or dist(extrem2, extremB2) <= sensibilite):
+                poutre.setConnexionPoutre(beam.getId(), [extremB2[0], extremB2[1]])
 
 
 ## Connexion des liaisons aux poutres
@@ -344,6 +340,9 @@ def connecteLiaison(liaison, Poutres):
     for poutre in Poutres:
         extrem1 = np.array(poutre.getOrigin())
         extrem2 = extrem1 + np.array(poutre.getVectDir())
-        if (dist(extrem1, center) <= radiusLarge or dist(extrem2, center) <= radiusLarge):
-            poutre.setLiaison(liaison.getId())
-            liaison.setPoutre(poutre.getId())
+        if (dist(extrem1, center) <= radiusLarge):
+            poutre.setLiaison(liaison.getId(), [extrem1[0], extrem1[1]])
+            liaison.setPoutre(poutre.getId(), [extrem1[0], extrem1[1]])
+        elif (dist(extrem2, center) <= radiusLarge):
+            poutre.setLiaison(liaison.getId(), [extrem2[0], extrem2[1]])
+            liaison.setPoutre(poutre.getId(), [extrem2[0], extrem2[1]])

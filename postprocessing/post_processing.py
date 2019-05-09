@@ -32,9 +32,9 @@ from Liaisons import *
 
 
 # 1ere étape : Vecteur directeur + origine + distance
-## 2eme étape : Longueurs
-## 3eme étape : Liaisons
-## 4eme étape : Forces
+# 2eme étape : Longueurs
+# 3eme étape : Liaisons
+# 4eme étape : Forces
 ## 5eme étape : Moments
 ## 6eme étape : Points spéciaux
 
@@ -86,6 +86,12 @@ for poutre in Poutres:
 for liaison in Liaisons:
     connecteLiaison(liaison, Poutres)
 
+
+## Demande à l'utilisateur d'entrer la valeur de ses constantes
+for caractere in caracteres:
+    val = input("Quelle est la valeur de " + caractere + " ? La valeur doit être exprimée dans les dimensions du système international (m, N). \n")
+    inputValeurSchema(caractere, val)
+# Les valeurs sont stockées dans le dictionnaire VALEURS
 
 
 ## Affichage de toutes les données des poutres

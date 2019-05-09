@@ -34,7 +34,7 @@ class Poutre :
         # Distance en pixels, i.e. taille de la poutre en pixels dans l'image
         self.distance= np.sqrt((xmax-xmin)**2 + (ymax-ymin)**2)
 
-        # Poutres avec laquelle la poutre actuelle est liée
+        # Poutres avec laquelle la poutre actuelle est liée. Pour chaque poutre, on enregistre l'id de l'autre poutre et l'extremite de celle-ci
         self.poutres_voisines=[]
 
     def display(self):
@@ -68,8 +68,8 @@ class Poutre :
         if (force.getType() == "force_ponctuelle"):
             self.forces_ponctuelles.append((force.getNorme(), force.getVectDir(), prop))
     
-    def setConnexionPoutre(self, ind_poutre):
-        self.poutres_voisines.append(ind_poutre)
+    def setConnexionPoutre(self, ind_poutre, point):
+        self.poutres_voisines.append((ind_poutre, point))
     
-    def setLiaison(self, ind_liaison):
-        self.liaisons.append(ind_liaison)
+    def setLiaison(self, ind_liaison, point):
+        self.liaisons.append((ind_liaison, point))

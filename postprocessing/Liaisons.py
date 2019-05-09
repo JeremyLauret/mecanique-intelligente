@@ -33,5 +33,5 @@ class Liaison:
     def getRadius(self):
         return self.rayon
     
-    def setPoutre(self, ind_poutre):
-        self.poutres.append(ind_poutre)
+    def setPoutre(self, ind_poutre, point):
+        self.poutres.append((ind_poutre, point))

@@ -41,6 +41,7 @@ ind_forces = []
 ind_liaisons = []
 # Indices des caracteres
 ind_caracteres = []
+caracteres = []
 
 for i in range(nb_poutres, len(data)):
     if (data[i,-1] == LABELS["cote_longueur"] or
@@ -59,3 +60,4 @@ for i in range(nb_poutres, len(data)):
         ind_liaisons.append(i)
     elif (data[i,-1] <= 25):
         ind_caracteres.append(i)
+        caracteres.append(LABELS_INV[data[i,-1]])
