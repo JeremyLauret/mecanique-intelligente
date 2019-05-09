@@ -51,6 +51,9 @@ class Poutre :
         print("Forces linéiques : " + str(self.forces_lineiques))
         print()
 
+    def getId(self):
+        return self.id
+    
     def getOrigin(self):
         return self.origine
 
@@ -64,3 +67,9 @@ class Poutre :
     def setForce(self, force, prop):
         if (force.getType() == "force_ponctuelle"):
             self.forces_ponctuelles.append((force.getNorme(), force.getVectDir(), prop))
+    
+    def setConnexionPoutre(self, ind_poutre):
+        self.poutres_voisines.append(ind_poutre)
+    
+    def setLiaison(self, ind_liaison):
+        self.liaisons.append(ind_liaison)

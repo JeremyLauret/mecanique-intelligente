@@ -78,7 +78,13 @@ for cote in Cotes:
 for force in Forces:
     attribueForce(force, Poutres)
 
+# Connexion des poutres entre elles
+for poutre in Poutres:
+    connectePoutre(poutre, Poutres)
 
+# Connexion des liaisons sur les poutres
+for liaison in Liaisons:
+    connecteLiaison(liaison, Poutres)
 
 
 

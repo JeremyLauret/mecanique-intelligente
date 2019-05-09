@@ -223,18 +223,13 @@ def attribueForce(force, Poutres):
         prop = normeX / normP
         
         if (np.dot(vdF, vdP) != 0):
-            print("ici")
             prop *= np.sign(np.dot(vdF, vdP))
         else :
-            print("là")
             prop *= np.sign(np.dot(vdP, vdF+origF-origP))
 
         if (prop >= 0 and prop <= 1):
-            print("Poutre " + str(poutre.id))
             propOptim = proportion(prop)
-            print("Proportion : " + str(propOptim))
             poutre.setForce(force, propOptim)
-        #### A COMPLETER
 
 
 
@@ -312,3 +307,43 @@ def attribueCaractere(id_car, Cotes, Forces):
         for force in Forces:
             if force.getId() == id_min:
                 force.setCaractere(caractere)
+
+
+## Connexion des poutres entre elles
+def connectePoutre(poutre, Poutres):
+    if len(Poutres) == 1:
+        return []
+    listePoutresConnectees = []
+    extrem1 = np.array(poutre.getOrigin())
+    extrem2 = np.array(poutre.getOrigin()) + np.array(poutre.getVectDir())
+    
+    sensibilite = np.minimum(I.shape[0], I.shape[1]) * 2/100
+    
+    for beam in Poutres:
+        if (beam.getId() != poutre.getId()):
+            extremB1 = np.array(beam.getOrigin())
+            extremB2 = extremB1 + np.array(beam.getVectDir())
+            
+            if (dist(extrem1, extremB1) <= sensibilite or
+                dist(extrem1, extremB2) <= sensibilite or
+                dist(extrem2, extremB1) <= sensibilite or
+                dist(extrem2, extremB2) <= sensibilite):
+                    listePoutresConnectees.append(beam.getId())
+    
+    for beam in listePoutresConnectees:
+        poutre.setConnexionPoutre(beam)
+
+
+## Connexion des liaisons aux poutres
+def connecteLiaison(liaison, Poutres):
+    #Connexion des liaisons rotule
+    center = np.array(liaison.getCenter())
+    radius = liaison.getRadius()
+    radiusLarge = 1.2*radius
+    
+    for poutre in Poutres:
+        extrem1 = np.array(poutre.getOrigin())
+        extrem2 = extrem1 + np.array(poutre.getVectDir())
+        if (dist(extrem1, center) <= radiusLarge or dist(extrem2, center) <= radiusLarge):
+            poutre.setLiaison(liaison.getId())
+            liaison.setPoutre(poutre.getId())

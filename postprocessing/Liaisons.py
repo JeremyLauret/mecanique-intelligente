@@ -10,12 +10,15 @@ class Liaison:
         xmin, xmax, ymin, ymax = data[identifiant, :4]
         self.centre = [int((xmin+xmax)/2), int((ymin+ymax)/2)]
         self.rayon = np.maximum((xmax-xmin)/2, (ymax-ymin)/2)
+        
+        self.poutres = []
 
     def display(self):
         print("Liaison n°" + str(self.id))
         print("Liaison de type : " + self.type)
         print("Centre du patch de la liaison : x = " + str(self.centre[0]) + ", y = " + str(self.centre[1]))
         print("Demi-plus grand côté : " + str(self.rayon))
+        print("Poutres reliées : " + str(self.poutres))
         print()
 
     def getId(self):
@@ -29,3 +32,6 @@ class Liaison:
 
     def getRadius(self):
         return self.rayon
+    
+    def setPoutre(self, ind_poutre):
+        self.poutres.append(ind_poutre)
