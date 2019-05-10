@@ -4,14 +4,28 @@
 #include <cstdio>   // Provide perror() and remove().
 
 #include "pretraitement.h"
+#include "hough.h"
 #include "pixel.h"
 #include "picture.h"
 #include "connected_set.h"
 
 
-bool PROCESS_RAW_INPUT = true;
-int RANGE = 15;          // Range of pixels considered to be in the neighborhood of another pixel.
-int MIN_PIXELS_NB = 10; // Minimum number of pixels in a connected set.
+const bool PROCESS_RAW_INPUT = true;
+// Number of iterations for the background removing algorithm.
+const int NB_BACK_DELETION_ITER{ 8 };
+// Range of pixels considered to be in the neighborhood of another pixel.
+const int FIRST_RANGE{ 10 };
+const int SECOND_RANGE{ 5 };
+// Minimum number of pixels in a connected set.
+const int MIN_PIXELS_NB{ 100 };
+// Lines longer than this percentage of the length of the longest detected line is a beam.
+const int HOUGH_RELATIVE_SIZE{ 40 };
+// Number of different values of theta considered (0 <= theta < 180).
+const int HOUGH_NB_THETA{ 180 };
+// Accepted size of "holes" in a beam.
+const int HOUGH_PIXEL_RANGE{ 10 };
+// Supposed beam thickness.
+const int HOUGH_BEAM_THICKNESS{ 3 };
 std::string RAW_INPUT_PATH = "../raw_input/";
 std::string INPUT_PATH = "../input/";
 std::string LARGEST_SETS_PATH = "../largest_sets/";
@@ -47,55 +61,6 @@ byte* to_binary(byte* image, int height, int width) {
         }
     }
     return binary_image;
-}
-
-
-/*
- * Return a colored image from the labeled picture.
- *
- * Each connected set of the picture is mapped to a color.
- */
-byte* to_color_image(const Picture& picture, int nb_labels) {
-    int height = picture.get_height();
-    int width = picture.get_width();
-    // ---- Map labels to colors ----
-    std::vector<byte> red_shades;
-    std::vector<byte> green_shades;
-    std::vector<byte> blue_shades;
-    for (int label_count = 0; label_count < nb_labels ; label_count++) {
-        red_shades.push_back((byte)(std::rand() % WHITE));
-        green_shades.push_back((byte)(std::rand() % WHITE));
-        blue_shades.push_back((byte)(std::rand() % WHITE));
-    }
-    // ---- Create RGB arrays depending on the pixel label ----
-    byte* red = new byte[height * width];
-    byte* green = new byte[height * width];
-    byte* blue  = new byte[height * width];
-    for (int row = 0 ; row < height ; row++) {
-        for (int col = 0 ; col < width ; col++) {
-            if (!picture.has_label(row, col)) {
-                red[col + width * row] = (byte)WHITE;
-                green[col + width * row] = (byte)WHITE;
-                blue[col + width * row] = (byte)WHITE;
-                continue;
-            }
-            red[col + width * row] = red_shades[picture.get_label(row, col)];
-            green[col + width * row] = green_shades[picture.get_label(row, col)];
-            blue[col + width * row] = blue_shades[picture.get_label(row, col)];
-        }
-    }
-    // ---- Create and fill the colored image ----
-    byte* image = new byte[3 * height * width];
-    for (int i = 0 ; i < width * height ; i++) {
-        image[3 * i]     = red[i];
-        image[3 * i + 1] = green[i];
-        image[3 * i + 2] = blue[i];
-    }
-    // ---- Cleanup ----
-    delete[] red;
-    delete[] green;
-    delete[] blue;
-    return image;
 }
 
 
@@ -433,26 +398,26 @@ void compute_and_save_connected_sets(
 }
 
 
-void removeVariableIllumination(Img img, const Img& img_or) {
+void removeVariableIllumination(Img& img, const Img& img_or, int nb_iter) {
     // j inverse l image pour travailler avec le modele additif
-    Img fond_blanc = img.clone();
+    Img fond_blanc(img.width(), img.height());
     fond_blanc.fill(255);
     img = fond_blanc - img;
-    for(int i = 0 ; i < nb_iter ; i++){
-        for(int x = 0 ; x< img.width()  ; x++){
-            for(int y = 0 ; y < img.height() ; y++){
+    for (int i = 0 ; i < nb_iter ; i++){
+        for (int x = 0 ; x < img.width()  ; x++){
+            for (int y = 0 ; y < img.height() ; y++){
                 pix_trans(img, x, y);
             }
         }
     }
-    int p ;
-    for(int x = 0 ; x< img.width()  ; x++){
-        for(int y = 0 ; y < img.height() ; y++){
-             p = img_or(x,y) + img(x,y) ;
-             if(p>255){
-                 p=255;
+    int pixel;
+    for (int x = 0 ; x < img.width()  ; x++){
+        for (int y = 0 ; y < img.height() ; y++){
+             pixel = img_or(x, y) + img(x, y);
+             if (pixel > 255){
+                 pixel = 255;
              }
-             img(x,y) = p ;
+             img(x, y) = pixel;
         }
     }
 }
@@ -475,16 +440,16 @@ void projection(Img img) {
  * @param img : image que l'on traite, qui est la sortie intéressante de cette fonction.
  * @param img_or : image d'origine, extraite du fichier input.
  */
-void getPreprocessedFullImage(Img img, const Img& img_or) {
+void getPreprocessedFullImage(Img& img, const Img& img_or, int nb_iter) {
     // Retire l'illumination variable
-    removeVariableIllumination(img, img_or);
-    // Retire les pixels isolés de l'image
-    supprimePixelsIsoles(img);
+    removeVariableIllumination(img, img_or, nb_iter);
     // Effectue une projection sur le noir et le blanc de tous les pixels de l'image
     projection(img);
+    // Retire les pixels noirs exclusivement entourés de blanc.
+    supprimePixelsIsoles(img);
     // Réduit toutes les droites à une seule ligne d'un pixel de large
-    supprimeDroites(img);
-    retireDroites(img);
+//    supprimeDroites(img);
+//    retireDroites(img);
 }
 
 
@@ -508,12 +473,8 @@ int main() {
             ){
                 perror("");
             }
-            //Imagine::Window raw_window = Imagine::openWindow(
-            //    raw_input_image.width(),
-            //    raw_input_image.height()
-            //);
             cleaned_image = raw_input_image.clone();
-            getPreprocessedFullImage(cleaned_image, raw_input_image);
+            getPreprocessedFullImage(cleaned_image, raw_input_image, NB_BACK_DELETION_ITER);
             std::string cleaned_name = INPUT_PATH + std::string(raw_input_file->d_name);
             Imagine::save(cleaned_image, stringSrcPath(cleaned_name));
         }
@@ -533,7 +494,7 @@ int main() {
             continue;
         }
         std::string input_full_name = std::string(input_file->d_name);
-        compute_and_save_connected_sets(INPUT_PATH, input_full_name, true, RANGE, MIN_PIXELS_NB);
+        compute_and_save_connected_sets(INPUT_PATH, input_full_name, true, FIRST_RANGE, MIN_PIXELS_NB);
     }
 
     // ---- Apply beam removal on largest sets ----
@@ -546,7 +507,6 @@ int main() {
         if (!strcmp(largest_set_file->d_name, ".") || !strcmp(largest_set_file->d_name, "..")) {
             continue;
         }
-        //Imagine::milliSleep(1500);
         Img largest_set_image;
         if (!Imagine::load(
             largest_set_image,
@@ -554,13 +514,10 @@ int main() {
         ){
             perror("");
         }
-        // Transformée de Hough
-        //Imagine::Window hough_window = Imagine::openWindow(
-        //    largest_set_image.width(),
-        //    largest_set_image.height()
-        //);
-        //Imagine::setActiveWindow(hough_window);
-        std::vector<Img> hough_output = hough(largest_set_image);
+        std::vector<Img> hough_output = hough(
+            largest_set_image, HOUGH_RELATIVE_SIZE, HOUGH_PIXEL_RANGE, HOUGH_BEAM_THICKNESS,
+            HOUGH_NB_THETA
+        );
         std::string no_beam_name = HOUGH_PATH + std::string(largest_set_file->d_name);
         std::string beam_name = HOUGH_PATH + "beam_" + std::string(largest_set_file->d_name);
         Imagine::save(hough_output[0], stringSrcPath(no_beam_name));
@@ -578,30 +535,30 @@ int main() {
             continue;
         }
         std::string hough_full_name = std::string(hough_file->d_name);
-        compute_and_save_connected_sets(HOUGH_PATH, hough_full_name, false, RANGE, MIN_PIXELS_NB);
+        compute_and_save_connected_sets(HOUGH_PATH, hough_full_name, false, SECOND_RANGE, MIN_PIXELS_NB);
     }
 
-    // ---- Remove intermediary files ----
-    // Largest sets directory.
-    rewinddir(largest_sets_directory);
-    while ((largest_set_file = readdir(largest_sets_directory)) != NULL) {
-        if (!strcmp(largest_set_file->d_name, ".") || !strcmp(largest_set_file->d_name, "..")) {
-            continue;
-        }
-        if (remove(stringSrcPath(LARGEST_SETS_PATH + std::string(largest_set_file->d_name)).c_str()) != 0) {
-            perror("");
-        }
-    }
-    // Hough output directory.
-    rewinddir(hough_directory);
-    while ((hough_file = readdir(hough_directory)) != NULL) {
-        if (!strcmp(hough_file->d_name, ".") || !strcmp(hough_file->d_name, "..")) {
-            continue;
-        }
-        if (remove(stringSrcPath(HOUGH_PATH + std::string(hough_file->d_name)).c_str()) != 0) {
-            perror("");
-        }
-    }
+//    // ---- Remove intermediary files ----
+//    // Largest sets directory.
+//    rewinddir(largest_sets_directory);
+//    while ((largest_set_file = readdir(largest_sets_directory)) != NULL) {
+//        if (!strcmp(largest_set_file->d_name, ".") || !strcmp(largest_set_file->d_name, "..")) {
+//            continue;
+//        }
+//        if (remove(stringSrcPath(LARGEST_SETS_PATH + std::string(largest_set_file->d_name)).c_str()) != 0) {
+//            perror("");
+//        }
+//    }
+//    // Hough output directory.
+//    rewinddir(hough_directory);
+//    while ((hough_file = readdir(hough_directory)) != NULL) {
+//        if (!strcmp(hough_file->d_name, ".") || !strcmp(hough_file->d_name, "..")) {
+//            continue;
+//        }
+//        if (remove(stringSrcPath(HOUGH_PATH + std::string(hough_file->d_name)).c_str()) != 0) {
+//            perror("");
+//        }
+//    }
 
     // ---- Close opened directories ----
     if (closedir(input_directory) == -1) {

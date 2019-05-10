@@ -5,13 +5,7 @@
 #include <iostream>
 #include <cmath>
 
-#include "hough.h"
-
 typedef Imagine::Image<byte> Img;
-
-
-
-
 
 
 // FONCTIONS GLOBALES
@@ -19,9 +13,6 @@ typedef Imagine::Image<byte> Img;
 int min (int i , int j);
 // Histogramme d'une image img
 void histogram(int hist[256],Img img);
-
-
-
 
 
 // TRAITEMENT DE L'ILLUMINATION VARIABLE ET PROJECTION EN NOIR ET BLANC
@@ -45,10 +36,6 @@ void projection_seuil(Img img, int seuil);
  */
 void supprimePixelsIsoles(Img img);
 
-
-
-
-
 // SUPPRESSION DES POUTRES
 /**
  * @brief supprimeDroites : détection de droites par transformée de Hough, puis suppression de celles-ci
@@ -58,8 +45,3 @@ void supprimeDroites(Img img);
 
 
 void retireDroites(Img img);
-
-void dessineDroite(Img imgDroites, int rho, int theta, Img img);
-
-// Transformée de Hough
-std::vector<Img> hough(Img img);

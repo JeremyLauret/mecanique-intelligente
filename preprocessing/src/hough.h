@@ -4,72 +4,65 @@
 #include <Imagine/Graphics.h>
 #include <iostream>
 #include <cmath>
+#include <vector>
 
 #include "pretraitement.h"
 
 typedef Imagine::Image<byte> Img;
-
-const int grheight =128,
-          barheight =32,
-          nb_iter = 15 ;
 
 const int white = 255;
 const int black = 0;
 
 
 // CONSTANTES SPECIFIQUES A LA TRANSFORMEE DE HOUGH
-const int nb_theta = 180;
-
-const int seuil_hough = 60;
-const int ecart_hough = 5;
-const int tolerance_hough = 1;
-
-
+const int _NB_THETA{ 180 };
 
 
 // FONCTIONS
 /**
- * @brief calculTransformeeSurImage : Calcul le tableau M des rho et theta correspondant aux droites de l'image img
- * @param img : image d'origine
- * @param M : tableau de valeurs des rho et theta, de taille nb_theta*nb_rho
- * @param NB_theta
- * @param rho_max
+ * Remplit l'histogramme H des couples (rho, theta) obtenus par transformée de Hough des pixels de
+ * l'image.
+ *
+ * H est de taille nb_theta x (2*rho_max + 1) (rho pouvant prendre des valeurs négatives).
  */
-void calculTransformeeSurImage(const Img& img, int M[], const int& rho_max);
+void computeHoughHistogram(const Img& img, int H[], int rho_max, int nb_theta=_NB_THETA);
 
+/*
+ * Colorie les pixels situés sur le segment [(x_deb, y_deb), (x_fin, y_fin)].
+ */
+void colorSegment(Img& img, int x_deb, int x_fin, int y_deb, int y_fin, int color);
 
-void rechercheMaxRhoTheta(Img img, int M[], const int& rho_max, Img imgDroitesLarges, Img imgDroites);
-
-void debutFinDroite(const Img& img, const int& rho, const int& theta, int x_debut, int y_debut, int x_fin, int y_fin, int longueurPoutreMax, const int &seuil);
+/*
+ * Détermine la position et la longueur de la plus longue succession de pixels noirs située sur la
+ * droite paramétrée par rho et theta.
+ *
+ * La longueur et les coordonnées du segment sont affectés aux paramètres.
+ */
+void findSegmentsEdges(const Img& img, int rho, int theta, int& x_debut, int& y_debut,
+                    int& x_fin, int& y_fin, int pixel_range, int nb_theta=_NB_THETA);
 
 /**
- * @brief retireSegment
- * @param img
- * @param x_deb
- * @param x_fin
- * @param y_deb
- * @param y_fin
+ * Identifie les lignes de l'image les plus longues et stocke leurs coordonnées de début et de fin
+ * dans les vecteurs en paramètre.
+ *
+ * min_relative_size fixe la taille minimale relative à la ligne avec le plus de pixels pour qu'une
+ * autre ligne soit retenue.
  */
-void retireSegment(Img img, const int& x_deb, const int& x_fin, const int& y_deb, const int& y_fin);
+void findLongestLines(Img img, int H[], int rho_max, std::vector<int>& beg_rows,
+                      std::vector<int>& end_rows, std::vector<int>& beg_cols,
+                      std::vector<int>& end_cols, int min_relative_size, int pixel_range,
+                      int nb_theta);
 
 
 /**
- * @brief nettoyageDroites : supprime les artefacts présents dans l'image
- * @param img
- * @param imgDroites : Image des droites détectées précédemment
+ * Applique l'algorithme de détection de droites de Hough à l'image fournie pour en retirer les
+ * droites les plus longues.
+ *
+ * Renvoie un vecteur de taille 2 contenant d'une part l'image d'origine privée des plus longues
+ * droites, d'autre part l'image contenant uniquement les droites retirées.
+ *
+ * Toute droite contenant plus de min_relative_size * <nombre de pixels de la plus longue droite>
+ * pixels est retirée.
  */
-void nettoyageDroites(const Img& img, Img imgDroites);
-
-/**
- * @brief dessineDroitesLarges : dessine les droites avec un certain seuil de tolérance sur la direction, pour quand même détecter des traits tracés à la main et donc pas parfaitement réguliers
- * @param imgDroitesLarges
- * @param rho_max
- */
-void dessineDroitesLarges(const Img &img, Img imgDroitesLarges, int M[], const int& rho_max);
-
-/**
- * @brief effaceDroitesLargesCalculees : à partir des images img et imgDroitesLarges, on retire dans img les droites présentes dans imgDroitesLarges, pour ne garder que les éléments qui ne sont pas des poutres
- * @param img
- * @param imgDroitesLarges
- */
-void effaceDroitesLargesCalculees(Img img, const Img& imgDroitesLarges);
+std::vector<Img> hough(const Img& img, int min_relative_size, int pixel_range, int beam_thickness,
+                       int nb_theta=_NB_THETA);
